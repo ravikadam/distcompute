@@ -12,11 +12,11 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 5 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0)
+- **Versions shipped:** 6 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0 + v1.5.0)
 - **Sessions:** 2026-06-14
-- **First change:** 2026-06-14 ~10:30 UTC
-- **Latest change:** 2026-06-14 ~15:23 UTC
-- **Time spent (wall-clock window):** ~4h 50m (one session; includes gaps for on-cluster testing between iterations)
+- **First change:** 2026-06-14 09:52 UTC
+- **Latest change:** 2026-06-14 ~17:54 UTC
+- **Time spent (wall-clock window):** ~8h 2m (one session; includes gaps for on-cluster testing between iterations)
 - **🐛 Bug Fixes:** 12
 - **⚡ Enhancements:** 1 (tolerant heartbeat timeout)
 - **✨ New Features:** 13
@@ -29,6 +29,28 @@ All notable changes to this project, newest first.
 ## [Unreleased]
 
 *(work in flight — see commits for incremental status)*
+
+---
+
+## v1.5.0 — Run IDs, checkpointing & resume [✨ New Feature]
+
+**Started:** 2026-06-14 ~17:05 UTC
+**Shipped:** 2026-06-14 ~17:54 UTC
+**Duration:** ~50 min
+
+- **Drove this:** A Wi-Fi network change killed the orchestrator/agent mid-run and the training was lost — there was no run identity and nothing on disk to recover from. Training needs to survive restarts.
+
+- **What we did:**
+  - ✅ **Unique run id per run** (`run-<ts>-<rand>`) assigned at start, surfaced in `/api/training/status`, on the dashboard ("Active run"), and tagged onto every `assign_task` so workers log which run they're serving.
+  - ✅ **Periodic checkpoints** (`checkpoints.ts`, `CheckpointStore`) — the loop saves weights + full Adam state (m/v) + step/epoch/counters + the run's config to `checkpoints/<runId>/` every `checkpointEverySteps` (default 20 — small so a crash loses only minutes) and once more when a target is reached. Stored as base64 Float32Arrays; meta kept in a small `meta.json` for fast listing.
+  - ✅ **List + resume** — `GET /api/runs` lists past runs (newest first); `POST /api/training/resume` restores a run's config, weights, Adam state, step, and counters from its latest checkpoint and continues training. New dashboard "Training Runs" panel shows every run (id, model, step, loss, updated) with a Resume button.
+  - ✅ **Workers rejoin the same run automatically** — workers are stateless task-executors, so reconnecting nodes (via the v1.2.0 auto-reconnect) immediately serve whatever run is active on the orchestrator; the run id now rides along on tasks for visibility.
+
+- **How it helps:** A crash, sleep, or network change no longer means starting over — resume from the last checkpoint (at most a few hundred steps lost), and the cluster picks up where it left off.
+
+- **Known limits:** Checkpoint size scales with model size (fine for Tiny-GPT ~MBs; impractical for canonical GPT-1). Only the latest checkpoint per run is kept (overwritten); periodic step-tagged snapshots and pruning are future work.
+
+- **Roadmap status:** Run ids + checkpoint + resume → Done. Open: WASM SIMD matmul, binary-frame transport, GPT live sampling.
 
 ---
 
@@ -97,9 +119,9 @@ All notable changes to this project, newest first.
 
 ## v1.1.0 — FP16 transport, full observability, and a faithful GPT-1 DSL + Tiny-GPT training [✨ New Feature + 🐛 Bug Fix + 🚀 Major Rewrite]
 
-**Started:** 2026-06-14 ~10:30 UTC
+**Started:** 2026-06-14 09:52 UTC
 **Shipped:** 2026-06-14 13:42 UTC
-**Duration:** ~3h 12m wall-clock (one session, including on-cluster testing between iterations)
+**Duration:** ~3h 50m wall-clock (one session, including on-cluster testing between iterations)
 
 - **Drove this:** The project started as a toy char-MLP distributed trainer. A round of real testing surfaced concrete bugs (broken Kick, only 4 workers ever used, jittery mobile UI, a TS build error), and the user then pushed it much further: run thousands of workers, halve bandwidth with FP16, see how much work is left and forecast time, log to Weights & Biases, persist config, and — the headline — compile a *faithful GPT-1* to a `.dsl` and actually train a byte-level Tiny-GPT across the cluster.
 

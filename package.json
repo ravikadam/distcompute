@@ -1,6 +1,6 @@
 {
   "name": "distcompute",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Distributed Compute Cluster for LLM Training on browser-based workers",
   "main": "dist/server/server.js",
   "scripts": {
