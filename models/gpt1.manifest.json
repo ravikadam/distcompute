@@ -1,0 +1,10081 @@
+{
+  "name": "gpt1",
+  "config": {
+    "vocab": 40478,
+    "context": 512,
+    "dModel": 768,
+    "nHead": 12,
+    "dFF": 3072,
+    "nLayer": 12
+  },
+  "batch": 1,
+  "seq": 512,
+  "tokensPerTask": 512,
+  "parameterCount": 116536320,
+  "instructionCount": 1849,
+  "inputs": [
+    {
+      "name": "tok",
+      "shape": [
+        512
+      ],
+      "role": "token ids (0..vocab-1)",
+      "dtype": "fp32"
+    },
+    {
+      "name": "pos",
+      "shape": [
+        512
+      ],
+      "role": "position ids (0..seq-1 per sequence)",
+      "dtype": "fp32"
+    },
+    {
+      "name": "mask",
+      "shape": [
+        1,
+        512,
+        512
+      ],
+      "role": "additive causal mask: 0 if key<=query else -1e9",
+      "dtype": "fp32"
+    },
+    {
+      "name": "targets",
+      "shape": [
+        512
+      ],
+      "role": "next-token class indices",
+      "dtype": "fp32"
+    }
+  ],
+  "outputs": {
+    "logits": "t425",
+    "loss": "t426"
+  },
+  "parameters": [
+    {
+      "name": "wte",
+      "shape": [
+        40478,
+        768
+      ]
+    },
+    {
+      "name": "wpe",
+      "shape": [
+        512,
+        768
+      ]
+    },
+    {
+      "name": "h0_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h0_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h0_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h0_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h0_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h0_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h1_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h1_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h1_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h1_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h1_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h2_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h2_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h2_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h2_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h2_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h3_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h3_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h3_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h3_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h3_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h4_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h4_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h4_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h4_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h4_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h5_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h5_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h5_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h5_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h5_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h6_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h6_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h6_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h6_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h6_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h7_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h7_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h7_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h7_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h7_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h8_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h8_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h8_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h8_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h8_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h9_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h9_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h9_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h9_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h9_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h10_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h10_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h10_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h10_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h10_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_ln1_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_ln1_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wq_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wq_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wk_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wk_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wv_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wv_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wo_w",
+      "shape": [
+        768,
+        768
+      ]
+    },
+    {
+      "name": "h11_attn_wo_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_ln2_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_ln2_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "h11_mlp_fc_w",
+      "shape": [
+        768,
+        3072
+      ]
+    },
+    {
+      "name": "h11_mlp_fc_b",
+      "shape": [
+        3072
+      ]
+    },
+    {
+      "name": "h11_mlp_proj_w",
+      "shape": [
+        3072,
+        768
+      ]
+    },
+    {
+      "name": "h11_mlp_proj_b",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "ln_f_g",
+      "shape": [
+        768
+      ]
+    },
+    {
+      "name": "ln_f_b",
+      "shape": [
+        768
+      ]
+    }
+  ],
+  "shapes": {
+    "tok": [
+      512
+    ],
+    "pos": [
+      512
+    ],
+    "mask": [
+      1,
+      512,
+      512
+    ],
+    "targets": [
+      512
+    ],
+    "wte": [
+      40478,
+      768
+    ],
+    "g_wte": [
+      40478,
+      768
+    ],
+    "wpe": [
+      512,
+      768
+    ],
+    "g_wpe": [
+      512,
+      768
+    ],
+    "h0_ln1_g": [
+      768
+    ],
+    "g_h0_ln1_g": [
+      768
+    ],
+    "h0_ln1_b": [
+      768
+    ],
+    "g_h0_ln1_b": [
+      768
+    ],
+    "h0_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h0_attn_wq_w": [
+      768,
+      768
+    ],
+    "h0_attn_wq_b": [
+      768
+    ],
+    "g_h0_attn_wq_b": [
+      768
+    ],
+    "h0_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h0_attn_wk_w": [
+      768,
+      768
+    ],
+    "h0_attn_wk_b": [
+      768
+    ],
+    "g_h0_attn_wk_b": [
+      768
+    ],
+    "h0_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h0_attn_wv_w": [
+      768,
+      768
+    ],
+    "h0_attn_wv_b": [
+      768
+    ],
+    "g_h0_attn_wv_b": [
+      768
+    ],
+    "h0_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h0_attn_wo_w": [
+      768,
+      768
+    ],
+    "h0_attn_wo_b": [
+      768
+    ],
+    "g_h0_attn_wo_b": [
+      768
+    ],
+    "h0_ln2_g": [
+      768
+    ],
+    "g_h0_ln2_g": [
+      768
+    ],
+    "h0_ln2_b": [
+      768
+    ],
+    "g_h0_ln2_b": [
+      768
+    ],
+    "h0_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h0_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h0_mlp_fc_b": [
+      3072
+    ],
+    "g_h0_mlp_fc_b": [
+      3072
+    ],
+    "h0_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h0_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h0_mlp_proj_b": [
+      768
+    ],
+    "g_h0_mlp_proj_b": [
+      768
+    ],
+    "h1_ln1_g": [
+      768
+    ],
+    "g_h1_ln1_g": [
+      768
+    ],
+    "h1_ln1_b": [
+      768
+    ],
+    "g_h1_ln1_b": [
+      768
+    ],
+    "h1_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h1_attn_wq_w": [
+      768,
+      768
+    ],
+    "h1_attn_wq_b": [
+      768
+    ],
+    "g_h1_attn_wq_b": [
+      768
+    ],
+    "h1_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h1_attn_wk_w": [
+      768,
+      768
+    ],
+    "h1_attn_wk_b": [
+      768
+    ],
+    "g_h1_attn_wk_b": [
+      768
+    ],
+    "h1_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h1_attn_wv_w": [
+      768,
+      768
+    ],
+    "h1_attn_wv_b": [
+      768
+    ],
+    "g_h1_attn_wv_b": [
+      768
+    ],
+    "h1_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h1_attn_wo_w": [
+      768,
+      768
+    ],
+    "h1_attn_wo_b": [
+      768
+    ],
+    "g_h1_attn_wo_b": [
+      768
+    ],
+    "h1_ln2_g": [
+      768
+    ],
+    "g_h1_ln2_g": [
+      768
+    ],
+    "h1_ln2_b": [
+      768
+    ],
+    "g_h1_ln2_b": [
+      768
+    ],
+    "h1_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h1_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h1_mlp_fc_b": [
+      3072
+    ],
+    "g_h1_mlp_fc_b": [
+      3072
+    ],
+    "h1_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h1_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h1_mlp_proj_b": [
+      768
+    ],
+    "g_h1_mlp_proj_b": [
+      768
+    ],
+    "h2_ln1_g": [
+      768
+    ],
+    "g_h2_ln1_g": [
+      768
+    ],
+    "h2_ln1_b": [
+      768
+    ],
+    "g_h2_ln1_b": [
+      768
+    ],
+    "h2_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h2_attn_wq_w": [
+      768,
+      768
+    ],
+    "h2_attn_wq_b": [
+      768
+    ],
+    "g_h2_attn_wq_b": [
+      768
+    ],
+    "h2_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h2_attn_wk_w": [
+      768,
+      768
+    ],
+    "h2_attn_wk_b": [
+      768
+    ],
+    "g_h2_attn_wk_b": [
+      768
+    ],
+    "h2_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h2_attn_wv_w": [
+      768,
+      768
+    ],
+    "h2_attn_wv_b": [
+      768
+    ],
+    "g_h2_attn_wv_b": [
+      768
+    ],
+    "h2_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h2_attn_wo_w": [
+      768,
+      768
+    ],
+    "h2_attn_wo_b": [
+      768
+    ],
+    "g_h2_attn_wo_b": [
+      768
+    ],
+    "h2_ln2_g": [
+      768
+    ],
+    "g_h2_ln2_g": [
+      768
+    ],
+    "h2_ln2_b": [
+      768
+    ],
+    "g_h2_ln2_b": [
+      768
+    ],
+    "h2_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h2_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h2_mlp_fc_b": [
+      3072
+    ],
+    "g_h2_mlp_fc_b": [
+      3072
+    ],
+    "h2_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h2_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h2_mlp_proj_b": [
+      768
+    ],
+    "g_h2_mlp_proj_b": [
+      768
+    ],
+    "h3_ln1_g": [
+      768
+    ],
+    "g_h3_ln1_g": [
+      768
+    ],
+    "h3_ln1_b": [
+      768
+    ],
+    "g_h3_ln1_b": [
+      768
+    ],
+    "h3_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h3_attn_wq_w": [
+      768,
+      768
+    ],
+    "h3_attn_wq_b": [
+      768
+    ],
+    "g_h3_attn_wq_b": [
+      768
+    ],
+    "h3_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h3_attn_wk_w": [
+      768,
+      768
+    ],
+    "h3_attn_wk_b": [
+      768
+    ],
+    "g_h3_attn_wk_b": [
+      768
+    ],
+    "h3_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h3_attn_wv_w": [
+      768,
+      768
+    ],
+    "h3_attn_wv_b": [
+      768
+    ],
+    "g_h3_attn_wv_b": [
+      768
+    ],
+    "h3_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h3_attn_wo_w": [
+      768,
+      768
+    ],
+    "h3_attn_wo_b": [
+      768
+    ],
+    "g_h3_attn_wo_b": [
+      768
+    ],
+    "h3_ln2_g": [
+      768
+    ],
+    "g_h3_ln2_g": [
+      768
+    ],
+    "h3_ln2_b": [
+      768
+    ],
+    "g_h3_ln2_b": [
+      768
+    ],
+    "h3_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h3_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h3_mlp_fc_b": [
+      3072
+    ],
+    "g_h3_mlp_fc_b": [
+      3072
+    ],
+    "h3_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h3_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h3_mlp_proj_b": [
+      768
+    ],
+    "g_h3_mlp_proj_b": [
+      768
+    ],
+    "h4_ln1_g": [
+      768
+    ],
+    "g_h4_ln1_g": [
+      768
+    ],
+    "h4_ln1_b": [
+      768
+    ],
+    "g_h4_ln1_b": [
+      768
+    ],
+    "h4_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h4_attn_wq_w": [
+      768,
+      768
+    ],
+    "h4_attn_wq_b": [
+      768
+    ],
+    "g_h4_attn_wq_b": [
+      768
+    ],
+    "h4_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h4_attn_wk_w": [
+      768,
+      768
+    ],
+    "h4_attn_wk_b": [
+      768
+    ],
+    "g_h4_attn_wk_b": [
+      768
+    ],
+    "h4_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h4_attn_wv_w": [
+      768,
+      768
+    ],
+    "h4_attn_wv_b": [
+      768
+    ],
+    "g_h4_attn_wv_b": [
+      768
+    ],
+    "h4_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h4_attn_wo_w": [
+      768,
+      768
+    ],
+    "h4_attn_wo_b": [
+      768
+    ],
+    "g_h4_attn_wo_b": [
+      768
+    ],
+    "h4_ln2_g": [
+      768
+    ],
+    "g_h4_ln2_g": [
+      768
+    ],
+    "h4_ln2_b": [
+      768
+    ],
+    "g_h4_ln2_b": [
+      768
+    ],
+    "h4_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h4_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h4_mlp_fc_b": [
+      3072
+    ],
+    "g_h4_mlp_fc_b": [
+      3072
+    ],
+    "h4_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h4_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h4_mlp_proj_b": [
+      768
+    ],
+    "g_h4_mlp_proj_b": [
+      768
+    ],
+    "h5_ln1_g": [
+      768
+    ],
+    "g_h5_ln1_g": [
+      768
+    ],
+    "h5_ln1_b": [
+      768
+    ],
+    "g_h5_ln1_b": [
+      768
+    ],
+    "h5_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h5_attn_wq_w": [
+      768,
+      768
+    ],
+    "h5_attn_wq_b": [
+      768
+    ],
+    "g_h5_attn_wq_b": [
+      768
+    ],
+    "h5_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h5_attn_wk_w": [
+      768,
+      768
+    ],
+    "h5_attn_wk_b": [
+      768
+    ],
+    "g_h5_attn_wk_b": [
+      768
+    ],
+    "h5_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h5_attn_wv_w": [
+      768,
+      768
+    ],
+    "h5_attn_wv_b": [
+      768
+    ],
+    "g_h5_attn_wv_b": [
+      768
+    ],
+    "h5_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h5_attn_wo_w": [
+      768,
+      768
+    ],
+    "h5_attn_wo_b": [
+      768
+    ],
+    "g_h5_attn_wo_b": [
+      768
+    ],
+    "h5_ln2_g": [
+      768
+    ],
+    "g_h5_ln2_g": [
+      768
+    ],
+    "h5_ln2_b": [
+      768
+    ],
+    "g_h5_ln2_b": [
+      768
+    ],
+    "h5_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h5_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h5_mlp_fc_b": [
+      3072
+    ],
+    "g_h5_mlp_fc_b": [
+      3072
+    ],
+    "h5_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h5_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h5_mlp_proj_b": [
+      768
+    ],
+    "g_h5_mlp_proj_b": [
+      768
+    ],
+    "h6_ln1_g": [
+      768
+    ],
+    "g_h6_ln1_g": [
+      768
+    ],
+    "h6_ln1_b": [
+      768
+    ],
+    "g_h6_ln1_b": [
+      768
+    ],
+    "h6_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h6_attn_wq_w": [
+      768,
+      768
+    ],
+    "h6_attn_wq_b": [
+      768
+    ],
+    "g_h6_attn_wq_b": [
+      768
+    ],
+    "h6_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h6_attn_wk_w": [
+      768,
+      768
+    ],
+    "h6_attn_wk_b": [
+      768
+    ],
+    "g_h6_attn_wk_b": [
+      768
+    ],
+    "h6_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h6_attn_wv_w": [
+      768,
+      768
+    ],
+    "h6_attn_wv_b": [
+      768
+    ],
+    "g_h6_attn_wv_b": [
+      768
+    ],
+    "h6_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h6_attn_wo_w": [
+      768,
+      768
+    ],
+    "h6_attn_wo_b": [
+      768
+    ],
+    "g_h6_attn_wo_b": [
+      768
+    ],
+    "h6_ln2_g": [
+      768
+    ],
+    "g_h6_ln2_g": [
+      768
+    ],
+    "h6_ln2_b": [
+      768
+    ],
+    "g_h6_ln2_b": [
+      768
+    ],
+    "h6_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h6_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h6_mlp_fc_b": [
+      3072
+    ],
+    "g_h6_mlp_fc_b": [
+      3072
+    ],
+    "h6_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h6_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h6_mlp_proj_b": [
+      768
+    ],
+    "g_h6_mlp_proj_b": [
+      768
+    ],
+    "h7_ln1_g": [
+      768
+    ],
+    "g_h7_ln1_g": [
+      768
+    ],
+    "h7_ln1_b": [
+      768
+    ],
+    "g_h7_ln1_b": [
+      768
+    ],
+    "h7_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h7_attn_wq_w": [
+      768,
+      768
+    ],
+    "h7_attn_wq_b": [
+      768
+    ],
+    "g_h7_attn_wq_b": [
+      768
+    ],
+    "h7_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h7_attn_wk_w": [
+      768,
+      768
+    ],
+    "h7_attn_wk_b": [
+      768
+    ],
+    "g_h7_attn_wk_b": [
+      768
+    ],
+    "h7_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h7_attn_wv_w": [
+      768,
+      768
+    ],
+    "h7_attn_wv_b": [
+      768
+    ],
+    "g_h7_attn_wv_b": [
+      768
+    ],
+    "h7_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h7_attn_wo_w": [
+      768,
+      768
+    ],
+    "h7_attn_wo_b": [
+      768
+    ],
+    "g_h7_attn_wo_b": [
+      768
+    ],
+    "h7_ln2_g": [
+      768
+    ],
+    "g_h7_ln2_g": [
+      768
+    ],
+    "h7_ln2_b": [
+      768
+    ],
+    "g_h7_ln2_b": [
+      768
+    ],
+    "h7_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h7_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h7_mlp_fc_b": [
+      3072
+    ],
+    "g_h7_mlp_fc_b": [
+      3072
+    ],
+    "h7_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h7_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h7_mlp_proj_b": [
+      768
+    ],
+    "g_h7_mlp_proj_b": [
+      768
+    ],
+    "h8_ln1_g": [
+      768
+    ],
+    "g_h8_ln1_g": [
+      768
+    ],
+    "h8_ln1_b": [
+      768
+    ],
+    "g_h8_ln1_b": [
+      768
+    ],
+    "h8_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h8_attn_wq_w": [
+      768,
+      768
+    ],
+    "h8_attn_wq_b": [
+      768
+    ],
+    "g_h8_attn_wq_b": [
+      768
+    ],
+    "h8_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h8_attn_wk_w": [
+      768,
+      768
+    ],
+    "h8_attn_wk_b": [
+      768
+    ],
+    "g_h8_attn_wk_b": [
+      768
+    ],
+    "h8_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h8_attn_wv_w": [
+      768,
+      768
+    ],
+    "h8_attn_wv_b": [
+      768
+    ],
+    "g_h8_attn_wv_b": [
+      768
+    ],
+    "h8_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h8_attn_wo_w": [
+      768,
+      768
+    ],
+    "h8_attn_wo_b": [
+      768
+    ],
+    "g_h8_attn_wo_b": [
+      768
+    ],
+    "h8_ln2_g": [
+      768
+    ],
+    "g_h8_ln2_g": [
+      768
+    ],
+    "h8_ln2_b": [
+      768
+    ],
+    "g_h8_ln2_b": [
+      768
+    ],
+    "h8_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h8_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h8_mlp_fc_b": [
+      3072
+    ],
+    "g_h8_mlp_fc_b": [
+      3072
+    ],
+    "h8_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h8_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h8_mlp_proj_b": [
+      768
+    ],
+    "g_h8_mlp_proj_b": [
+      768
+    ],
+    "h9_ln1_g": [
+      768
+    ],
+    "g_h9_ln1_g": [
+      768
+    ],
+    "h9_ln1_b": [
+      768
+    ],
+    "g_h9_ln1_b": [
+      768
+    ],
+    "h9_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h9_attn_wq_w": [
+      768,
+      768
+    ],
+    "h9_attn_wq_b": [
+      768
+    ],
+    "g_h9_attn_wq_b": [
+      768
+    ],
+    "h9_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h9_attn_wk_w": [
+      768,
+      768
+    ],
+    "h9_attn_wk_b": [
+      768
+    ],
+    "g_h9_attn_wk_b": [
+      768
+    ],
+    "h9_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h9_attn_wv_w": [
+      768,
+      768
+    ],
+    "h9_attn_wv_b": [
+      768
+    ],
+    "g_h9_attn_wv_b": [
+      768
+    ],
+    "h9_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h9_attn_wo_w": [
+      768,
+      768
+    ],
+    "h9_attn_wo_b": [
+      768
+    ],
+    "g_h9_attn_wo_b": [
+      768
+    ],
+    "h9_ln2_g": [
+      768
+    ],
+    "g_h9_ln2_g": [
+      768
+    ],
+    "h9_ln2_b": [
+      768
+    ],
+    "g_h9_ln2_b": [
+      768
+    ],
+    "h9_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h9_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h9_mlp_fc_b": [
+      3072
+    ],
+    "g_h9_mlp_fc_b": [
+      3072
+    ],
+    "h9_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h9_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h9_mlp_proj_b": [
+      768
+    ],
+    "g_h9_mlp_proj_b": [
+      768
+    ],
+    "h10_ln1_g": [
+      768
+    ],
+    "g_h10_ln1_g": [
+      768
+    ],
+    "h10_ln1_b": [
+      768
+    ],
+    "g_h10_ln1_b": [
+      768
+    ],
+    "h10_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h10_attn_wq_w": [
+      768,
+      768
+    ],
+    "h10_attn_wq_b": [
+      768
+    ],
+    "g_h10_attn_wq_b": [
+      768
+    ],
+    "h10_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h10_attn_wk_w": [
+      768,
+      768
+    ],
+    "h10_attn_wk_b": [
+      768
+    ],
+    "g_h10_attn_wk_b": [
+      768
+    ],
+    "h10_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h10_attn_wv_w": [
+      768,
+      768
+    ],
+    "h10_attn_wv_b": [
+      768
+    ],
+    "g_h10_attn_wv_b": [
+      768
+    ],
+    "h10_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h10_attn_wo_w": [
+      768,
+      768
+    ],
+    "h10_attn_wo_b": [
+      768
+    ],
+    "g_h10_attn_wo_b": [
+      768
+    ],
+    "h10_ln2_g": [
+      768
+    ],
+    "g_h10_ln2_g": [
+      768
+    ],
+    "h10_ln2_b": [
+      768
+    ],
+    "g_h10_ln2_b": [
+      768
+    ],
+    "h10_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h10_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h10_mlp_fc_b": [
+      3072
+    ],
+    "g_h10_mlp_fc_b": [
+      3072
+    ],
+    "h10_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h10_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h10_mlp_proj_b": [
+      768
+    ],
+    "g_h10_mlp_proj_b": [
+      768
+    ],
+    "h11_ln1_g": [
+      768
+    ],
+    "g_h11_ln1_g": [
+      768
+    ],
+    "h11_ln1_b": [
+      768
+    ],
+    "g_h11_ln1_b": [
+      768
+    ],
+    "h11_attn_wq_w": [
+      768,
+      768
+    ],
+    "g_h11_attn_wq_w": [
+      768,
+      768
+    ],
+    "h11_attn_wq_b": [
+      768
+    ],
+    "g_h11_attn_wq_b": [
+      768
+    ],
+    "h11_attn_wk_w": [
+      768,
+      768
+    ],
+    "g_h11_attn_wk_w": [
+      768,
+      768
+    ],
+    "h11_attn_wk_b": [
+      768
+    ],
+    "g_h11_attn_wk_b": [
+      768
+    ],
+    "h11_attn_wv_w": [
+      768,
+      768
+    ],
+    "g_h11_attn_wv_w": [
+      768,
+      768
+    ],
+    "h11_attn_wv_b": [
+      768
+    ],
+    "g_h11_attn_wv_b": [
+      768
+    ],
+    "h11_attn_wo_w": [
+      768,
+      768
+    ],
+    "g_h11_attn_wo_w": [
+      768,
+      768
+    ],
+    "h11_attn_wo_b": [
+      768
+    ],
+    "g_h11_attn_wo_b": [
+      768
+    ],
+    "h11_ln2_g": [
+      768
+    ],
+    "g_h11_ln2_g": [
+      768
+    ],
+    "h11_ln2_b": [
+      768
+    ],
+    "g_h11_ln2_b": [
+      768
+    ],
+    "h11_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "g_h11_mlp_fc_w": [
+      768,
+      3072
+    ],
+    "h11_mlp_fc_b": [
+      3072
+    ],
+    "g_h11_mlp_fc_b": [
+      3072
+    ],
+    "h11_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "g_h11_mlp_proj_w": [
+      3072,
+      768
+    ],
+    "h11_mlp_proj_b": [
+      768
+    ],
+    "g_h11_mlp_proj_b": [
+      768
+    ],
+    "ln_f_g": [
+      768
+    ],
+    "g_ln_f_g": [
+      768
+    ],
+    "ln_f_b": [
+      768
+    ],
+    "g_ln_f_b": [
+      768
+    ],
+    "t0": [
+      512,
+      768
+    ],
+    "g_t0": [
+      512,
+      768
+    ],
+    "t1": [
+      512,
+      768
+    ],
+    "g_t1": [
+      512,
+      768
+    ],
+    "t2": [
+      512,
+      768
+    ],
+    "g_t2": [
+      512,
+      768
+    ],
+    "t3": [
+      512,
+      768
+    ],
+    "g_t3": [
+      512,
+      768
+    ],
+    "t4": [
+      512,
+      768
+    ],
+    "g_t4": [
+      512,
+      768
+    ],
+    "t5": [
+      512,
+      768
+    ],
+    "g_t5": [
+      512,
+      768
+    ],
+    "t6": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t6": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t7": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t7": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t8": [
+      12,
+      512,
+      64
+    ],
+    "g_t8": [
+      12,
+      512,
+      64
+    ],
+    "t9": [
+      512,
+      768
+    ],
+    "g_t9": [
+      512,
+      768
+    ],
+    "t10": [
+      512,
+      768
+    ],
+    "g_t10": [
+      512,
+      768
+    ],
+    "t11": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t11": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t12": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t12": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t13": [
+      12,
+      512,
+      64
+    ],
+    "g_t13": [
+      12,
+      512,
+      64
+    ],
+    "t14": [
+      512,
+      768
+    ],
+    "g_t14": [
+      512,
+      768
+    ],
+    "t15": [
+      512,
+      768
+    ],
+    "g_t15": [
+      512,
+      768
+    ],
+    "t16": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t16": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t17": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t17": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t18": [
+      12,
+      512,
+      64
+    ],
+    "g_t18": [
+      12,
+      512,
+      64
+    ],
+    "t19": [
+      12,
+      64,
+      512
+    ],
+    "g_t19": [
+      12,
+      64,
+      512
+    ],
+    "t20": [
+      12,
+      512,
+      512
+    ],
+    "g_t20": [
+      12,
+      512,
+      512
+    ],
+    "t21": [
+      12,
+      512,
+      512
+    ],
+    "g_t21": [
+      12,
+      512,
+      512
+    ],
+    "t22": [
+      12,
+      512,
+      512
+    ],
+    "g_t22": [
+      12,
+      512,
+      512
+    ],
+    "t23": [
+      12,
+      512,
+      512
+    ],
+    "g_t23": [
+      12,
+      512,
+      512
+    ],
+    "t24": [
+      12,
+      512,
+      64
+    ],
+    "g_t24": [
+      12,
+      512,
+      64
+    ],
+    "t25": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t25": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t26": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t26": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t27": [
+      512,
+      768
+    ],
+    "g_t27": [
+      512,
+      768
+    ],
+    "t28": [
+      512,
+      768
+    ],
+    "g_t28": [
+      512,
+      768
+    ],
+    "t29": [
+      512,
+      768
+    ],
+    "g_t29": [
+      512,
+      768
+    ],
+    "t30": [
+      512,
+      768
+    ],
+    "g_t30": [
+      512,
+      768
+    ],
+    "t31": [
+      512,
+      768
+    ],
+    "g_t31": [
+      512,
+      768
+    ],
+    "t32": [
+      512,
+      3072
+    ],
+    "g_t32": [
+      512,
+      3072
+    ],
+    "t33": [
+      512,
+      3072
+    ],
+    "g_t33": [
+      512,
+      3072
+    ],
+    "t34": [
+      512,
+      3072
+    ],
+    "g_t34": [
+      512,
+      3072
+    ],
+    "t35": [
+      512,
+      768
+    ],
+    "g_t35": [
+      512,
+      768
+    ],
+    "t36": [
+      512,
+      768
+    ],
+    "g_t36": [
+      512,
+      768
+    ],
+    "t37": [
+      512,
+      768
+    ],
+    "g_t37": [
+      512,
+      768
+    ],
+    "t38": [
+      512,
+      768
+    ],
+    "g_t38": [
+      512,
+      768
+    ],
+    "t39": [
+      512,
+      768
+    ],
+    "g_t39": [
+      512,
+      768
+    ],
+    "t40": [
+      512,
+      768
+    ],
+    "g_t40": [
+      512,
+      768
+    ],
+    "t41": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t41": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t42": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t42": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t43": [
+      12,
+      512,
+      64
+    ],
+    "g_t43": [
+      12,
+      512,
+      64
+    ],
+    "t44": [
+      512,
+      768
+    ],
+    "g_t44": [
+      512,
+      768
+    ],
+    "t45": [
+      512,
+      768
+    ],
+    "g_t45": [
+      512,
+      768
+    ],
+    "t46": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t46": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t47": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t47": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t48": [
+      12,
+      512,
+      64
+    ],
+    "g_t48": [
+      12,
+      512,
+      64
+    ],
+    "t49": [
+      512,
+      768
+    ],
+    "g_t49": [
+      512,
+      768
+    ],
+    "t50": [
+      512,
+      768
+    ],
+    "g_t50": [
+      512,
+      768
+    ],
+    "t51": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t51": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t52": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t52": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t53": [
+      12,
+      512,
+      64
+    ],
+    "g_t53": [
+      12,
+      512,
+      64
+    ],
+    "t54": [
+      12,
+      64,
+      512
+    ],
+    "g_t54": [
+      12,
+      64,
+      512
+    ],
+    "t55": [
+      12,
+      512,
+      512
+    ],
+    "g_t55": [
+      12,
+      512,
+      512
+    ],
+    "t56": [
+      12,
+      512,
+      512
+    ],
+    "g_t56": [
+      12,
+      512,
+      512
+    ],
+    "t57": [
+      12,
+      512,
+      512
+    ],
+    "g_t57": [
+      12,
+      512,
+      512
+    ],
+    "t58": [
+      12,
+      512,
+      512
+    ],
+    "g_t58": [
+      12,
+      512,
+      512
+    ],
+    "t59": [
+      12,
+      512,
+      64
+    ],
+    "g_t59": [
+      12,
+      512,
+      64
+    ],
+    "t60": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t60": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t61": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t61": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t62": [
+      512,
+      768
+    ],
+    "g_t62": [
+      512,
+      768
+    ],
+    "t63": [
+      512,
+      768
+    ],
+    "g_t63": [
+      512,
+      768
+    ],
+    "t64": [
+      512,
+      768
+    ],
+    "g_t64": [
+      512,
+      768
+    ],
+    "t65": [
+      512,
+      768
+    ],
+    "g_t65": [
+      512,
+      768
+    ],
+    "t66": [
+      512,
+      768
+    ],
+    "g_t66": [
+      512,
+      768
+    ],
+    "t67": [
+      512,
+      3072
+    ],
+    "g_t67": [
+      512,
+      3072
+    ],
+    "t68": [
+      512,
+      3072
+    ],
+    "g_t68": [
+      512,
+      3072
+    ],
+    "t69": [
+      512,
+      3072
+    ],
+    "g_t69": [
+      512,
+      3072
+    ],
+    "t70": [
+      512,
+      768
+    ],
+    "g_t70": [
+      512,
+      768
+    ],
+    "t71": [
+      512,
+      768
+    ],
+    "g_t71": [
+      512,
+      768
+    ],
+    "t72": [
+      512,
+      768
+    ],
+    "g_t72": [
+      512,
+      768
+    ],
+    "t73": [
+      512,
+      768
+    ],
+    "g_t73": [
+      512,
+      768
+    ],
+    "t74": [
+      512,
+      768
+    ],
+    "g_t74": [
+      512,
+      768
+    ],
+    "t75": [
+      512,
+      768
+    ],
+    "g_t75": [
+      512,
+      768
+    ],
+    "t76": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t76": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t77": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t77": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t78": [
+      12,
+      512,
+      64
+    ],
+    "g_t78": [
+      12,
+      512,
+      64
+    ],
+    "t79": [
+      512,
+      768
+    ],
+    "g_t79": [
+      512,
+      768
+    ],
+    "t80": [
+      512,
+      768
+    ],
+    "g_t80": [
+      512,
+      768
+    ],
+    "t81": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t81": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t82": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t82": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t83": [
+      12,
+      512,
+      64
+    ],
+    "g_t83": [
+      12,
+      512,
+      64
+    ],
+    "t84": [
+      512,
+      768
+    ],
+    "g_t84": [
+      512,
+      768
+    ],
+    "t85": [
+      512,
+      768
+    ],
+    "g_t85": [
+      512,
+      768
+    ],
+    "t86": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t86": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t87": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t87": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t88": [
+      12,
+      512,
+      64
+    ],
+    "g_t88": [
+      12,
+      512,
+      64
+    ],
+    "t89": [
+      12,
+      64,
+      512
+    ],
+    "g_t89": [
+      12,
+      64,
+      512
+    ],
+    "t90": [
+      12,
+      512,
+      512
+    ],
+    "g_t90": [
+      12,
+      512,
+      512
+    ],
+    "t91": [
+      12,
+      512,
+      512
+    ],
+    "g_t91": [
+      12,
+      512,
+      512
+    ],
+    "t92": [
+      12,
+      512,
+      512
+    ],
+    "g_t92": [
+      12,
+      512,
+      512
+    ],
+    "t93": [
+      12,
+      512,
+      512
+    ],
+    "g_t93": [
+      12,
+      512,
+      512
+    ],
+    "t94": [
+      12,
+      512,
+      64
+    ],
+    "g_t94": [
+      12,
+      512,
+      64
+    ],
+    "t95": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t95": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t96": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t96": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t97": [
+      512,
+      768
+    ],
+    "g_t97": [
+      512,
+      768
+    ],
+    "t98": [
+      512,
+      768
+    ],
+    "g_t98": [
+      512,
+      768
+    ],
+    "t99": [
+      512,
+      768
+    ],
+    "g_t99": [
+      512,
+      768
+    ],
+    "t100": [
+      512,
+      768
+    ],
+    "g_t100": [
+      512,
+      768
+    ],
+    "t101": [
+      512,
+      768
+    ],
+    "g_t101": [
+      512,
+      768
+    ],
+    "t102": [
+      512,
+      3072
+    ],
+    "g_t102": [
+      512,
+      3072
+    ],
+    "t103": [
+      512,
+      3072
+    ],
+    "g_t103": [
+      512,
+      3072
+    ],
+    "t104": [
+      512,
+      3072
+    ],
+    "g_t104": [
+      512,
+      3072
+    ],
+    "t105": [
+      512,
+      768
+    ],
+    "g_t105": [
+      512,
+      768
+    ],
+    "t106": [
+      512,
+      768
+    ],
+    "g_t106": [
+      512,
+      768
+    ],
+    "t107": [
+      512,
+      768
+    ],
+    "g_t107": [
+      512,
+      768
+    ],
+    "t108": [
+      512,
+      768
+    ],
+    "g_t108": [
+      512,
+      768
+    ],
+    "t109": [
+      512,
+      768
+    ],
+    "g_t109": [
+      512,
+      768
+    ],
+    "t110": [
+      512,
+      768
+    ],
+    "g_t110": [
+      512,
+      768
+    ],
+    "t111": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t111": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t112": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t112": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t113": [
+      12,
+      512,
+      64
+    ],
+    "g_t113": [
+      12,
+      512,
+      64
+    ],
+    "t114": [
+      512,
+      768
+    ],
+    "g_t114": [
+      512,
+      768
+    ],
+    "t115": [
+      512,
+      768
+    ],
+    "g_t115": [
+      512,
+      768
+    ],
+    "t116": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t116": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t117": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t117": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t118": [
+      12,
+      512,
+      64
+    ],
+    "g_t118": [
+      12,
+      512,
+      64
+    ],
+    "t119": [
+      512,
+      768
+    ],
+    "g_t119": [
+      512,
+      768
+    ],
+    "t120": [
+      512,
+      768
+    ],
+    "g_t120": [
+      512,
+      768
+    ],
+    "t121": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t121": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t122": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t122": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t123": [
+      12,
+      512,
+      64
+    ],
+    "g_t123": [
+      12,
+      512,
+      64
+    ],
+    "t124": [
+      12,
+      64,
+      512
+    ],
+    "g_t124": [
+      12,
+      64,
+      512
+    ],
+    "t125": [
+      12,
+      512,
+      512
+    ],
+    "g_t125": [
+      12,
+      512,
+      512
+    ],
+    "t126": [
+      12,
+      512,
+      512
+    ],
+    "g_t126": [
+      12,
+      512,
+      512
+    ],
+    "t127": [
+      12,
+      512,
+      512
+    ],
+    "g_t127": [
+      12,
+      512,
+      512
+    ],
+    "t128": [
+      12,
+      512,
+      512
+    ],
+    "g_t128": [
+      12,
+      512,
+      512
+    ],
+    "t129": [
+      12,
+      512,
+      64
+    ],
+    "g_t129": [
+      12,
+      512,
+      64
+    ],
+    "t130": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t130": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t131": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t131": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t132": [
+      512,
+      768
+    ],
+    "g_t132": [
+      512,
+      768
+    ],
+    "t133": [
+      512,
+      768
+    ],
+    "g_t133": [
+      512,
+      768
+    ],
+    "t134": [
+      512,
+      768
+    ],
+    "g_t134": [
+      512,
+      768
+    ],
+    "t135": [
+      512,
+      768
+    ],
+    "g_t135": [
+      512,
+      768
+    ],
+    "t136": [
+      512,
+      768
+    ],
+    "g_t136": [
+      512,
+      768
+    ],
+    "t137": [
+      512,
+      3072
+    ],
+    "g_t137": [
+      512,
+      3072
+    ],
+    "t138": [
+      512,
+      3072
+    ],
+    "g_t138": [
+      512,
+      3072
+    ],
+    "t139": [
+      512,
+      3072
+    ],
+    "g_t139": [
+      512,
+      3072
+    ],
+    "t140": [
+      512,
+      768
+    ],
+    "g_t140": [
+      512,
+      768
+    ],
+    "t141": [
+      512,
+      768
+    ],
+    "g_t141": [
+      512,
+      768
+    ],
+    "t142": [
+      512,
+      768
+    ],
+    "g_t142": [
+      512,
+      768
+    ],
+    "t143": [
+      512,
+      768
+    ],
+    "g_t143": [
+      512,
+      768
+    ],
+    "t144": [
+      512,
+      768
+    ],
+    "g_t144": [
+      512,
+      768
+    ],
+    "t145": [
+      512,
+      768
+    ],
+    "g_t145": [
+      512,
+      768
+    ],
+    "t146": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t146": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t147": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t147": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t148": [
+      12,
+      512,
+      64
+    ],
+    "g_t148": [
+      12,
+      512,
+      64
+    ],
+    "t149": [
+      512,
+      768
+    ],
+    "g_t149": [
+      512,
+      768
+    ],
+    "t150": [
+      512,
+      768
+    ],
+    "g_t150": [
+      512,
+      768
+    ],
+    "t151": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t151": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t152": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t152": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t153": [
+      12,
+      512,
+      64
+    ],
+    "g_t153": [
+      12,
+      512,
+      64
+    ],
+    "t154": [
+      512,
+      768
+    ],
+    "g_t154": [
+      512,
+      768
+    ],
+    "t155": [
+      512,
+      768
+    ],
+    "g_t155": [
+      512,
+      768
+    ],
+    "t156": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t156": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t157": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t157": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t158": [
+      12,
+      512,
+      64
+    ],
+    "g_t158": [
+      12,
+      512,
+      64
+    ],
+    "t159": [
+      12,
+      64,
+      512
+    ],
+    "g_t159": [
+      12,
+      64,
+      512
+    ],
+    "t160": [
+      12,
+      512,
+      512
+    ],
+    "g_t160": [
+      12,
+      512,
+      512
+    ],
+    "t161": [
+      12,
+      512,
+      512
+    ],
+    "g_t161": [
+      12,
+      512,
+      512
+    ],
+    "t162": [
+      12,
+      512,
+      512
+    ],
+    "g_t162": [
+      12,
+      512,
+      512
+    ],
+    "t163": [
+      12,
+      512,
+      512
+    ],
+    "g_t163": [
+      12,
+      512,
+      512
+    ],
+    "t164": [
+      12,
+      512,
+      64
+    ],
+    "g_t164": [
+      12,
+      512,
+      64
+    ],
+    "t165": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t165": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t166": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t166": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t167": [
+      512,
+      768
+    ],
+    "g_t167": [
+      512,
+      768
+    ],
+    "t168": [
+      512,
+      768
+    ],
+    "g_t168": [
+      512,
+      768
+    ],
+    "t169": [
+      512,
+      768
+    ],
+    "g_t169": [
+      512,
+      768
+    ],
+    "t170": [
+      512,
+      768
+    ],
+    "g_t170": [
+      512,
+      768
+    ],
+    "t171": [
+      512,
+      768
+    ],
+    "g_t171": [
+      512,
+      768
+    ],
+    "t172": [
+      512,
+      3072
+    ],
+    "g_t172": [
+      512,
+      3072
+    ],
+    "t173": [
+      512,
+      3072
+    ],
+    "g_t173": [
+      512,
+      3072
+    ],
+    "t174": [
+      512,
+      3072
+    ],
+    "g_t174": [
+      512,
+      3072
+    ],
+    "t175": [
+      512,
+      768
+    ],
+    "g_t175": [
+      512,
+      768
+    ],
+    "t176": [
+      512,
+      768
+    ],
+    "g_t176": [
+      512,
+      768
+    ],
+    "t177": [
+      512,
+      768
+    ],
+    "g_t177": [
+      512,
+      768
+    ],
+    "t178": [
+      512,
+      768
+    ],
+    "g_t178": [
+      512,
+      768
+    ],
+    "t179": [
+      512,
+      768
+    ],
+    "g_t179": [
+      512,
+      768
+    ],
+    "t180": [
+      512,
+      768
+    ],
+    "g_t180": [
+      512,
+      768
+    ],
+    "t181": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t181": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t182": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t182": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t183": [
+      12,
+      512,
+      64
+    ],
+    "g_t183": [
+      12,
+      512,
+      64
+    ],
+    "t184": [
+      512,
+      768
+    ],
+    "g_t184": [
+      512,
+      768
+    ],
+    "t185": [
+      512,
+      768
+    ],
+    "g_t185": [
+      512,
+      768
+    ],
+    "t186": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t186": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t187": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t187": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t188": [
+      12,
+      512,
+      64
+    ],
+    "g_t188": [
+      12,
+      512,
+      64
+    ],
+    "t189": [
+      512,
+      768
+    ],
+    "g_t189": [
+      512,
+      768
+    ],
+    "t190": [
+      512,
+      768
+    ],
+    "g_t190": [
+      512,
+      768
+    ],
+    "t191": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t191": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t192": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t192": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t193": [
+      12,
+      512,
+      64
+    ],
+    "g_t193": [
+      12,
+      512,
+      64
+    ],
+    "t194": [
+      12,
+      64,
+      512
+    ],
+    "g_t194": [
+      12,
+      64,
+      512
+    ],
+    "t195": [
+      12,
+      512,
+      512
+    ],
+    "g_t195": [
+      12,
+      512,
+      512
+    ],
+    "t196": [
+      12,
+      512,
+      512
+    ],
+    "g_t196": [
+      12,
+      512,
+      512
+    ],
+    "t197": [
+      12,
+      512,
+      512
+    ],
+    "g_t197": [
+      12,
+      512,
+      512
+    ],
+    "t198": [
+      12,
+      512,
+      512
+    ],
+    "g_t198": [
+      12,
+      512,
+      512
+    ],
+    "t199": [
+      12,
+      512,
+      64
+    ],
+    "g_t199": [
+      12,
+      512,
+      64
+    ],
+    "t200": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t200": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t201": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t201": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t202": [
+      512,
+      768
+    ],
+    "g_t202": [
+      512,
+      768
+    ],
+    "t203": [
+      512,
+      768
+    ],
+    "g_t203": [
+      512,
+      768
+    ],
+    "t204": [
+      512,
+      768
+    ],
+    "g_t204": [
+      512,
+      768
+    ],
+    "t205": [
+      512,
+      768
+    ],
+    "g_t205": [
+      512,
+      768
+    ],
+    "t206": [
+      512,
+      768
+    ],
+    "g_t206": [
+      512,
+      768
+    ],
+    "t207": [
+      512,
+      3072
+    ],
+    "g_t207": [
+      512,
+      3072
+    ],
+    "t208": [
+      512,
+      3072
+    ],
+    "g_t208": [
+      512,
+      3072
+    ],
+    "t209": [
+      512,
+      3072
+    ],
+    "g_t209": [
+      512,
+      3072
+    ],
+    "t210": [
+      512,
+      768
+    ],
+    "g_t210": [
+      512,
+      768
+    ],
+    "t211": [
+      512,
+      768
+    ],
+    "g_t211": [
+      512,
+      768
+    ],
+    "t212": [
+      512,
+      768
+    ],
+    "g_t212": [
+      512,
+      768
+    ],
+    "t213": [
+      512,
+      768
+    ],
+    "g_t213": [
+      512,
+      768
+    ],
+    "t214": [
+      512,
+      768
+    ],
+    "g_t214": [
+      512,
+      768
+    ],
+    "t215": [
+      512,
+      768
+    ],
+    "g_t215": [
+      512,
+      768
+    ],
+    "t216": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t216": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t217": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t217": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t218": [
+      12,
+      512,
+      64
+    ],
+    "g_t218": [
+      12,
+      512,
+      64
+    ],
+    "t219": [
+      512,
+      768
+    ],
+    "g_t219": [
+      512,
+      768
+    ],
+    "t220": [
+      512,
+      768
+    ],
+    "g_t220": [
+      512,
+      768
+    ],
+    "t221": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t221": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t222": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t222": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t223": [
+      12,
+      512,
+      64
+    ],
+    "g_t223": [
+      12,
+      512,
+      64
+    ],
+    "t224": [
+      512,
+      768
+    ],
+    "g_t224": [
+      512,
+      768
+    ],
+    "t225": [
+      512,
+      768
+    ],
+    "g_t225": [
+      512,
+      768
+    ],
+    "t226": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t226": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t227": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t227": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t228": [
+      12,
+      512,
+      64
+    ],
+    "g_t228": [
+      12,
+      512,
+      64
+    ],
+    "t229": [
+      12,
+      64,
+      512
+    ],
+    "g_t229": [
+      12,
+      64,
+      512
+    ],
+    "t230": [
+      12,
+      512,
+      512
+    ],
+    "g_t230": [
+      12,
+      512,
+      512
+    ],
+    "t231": [
+      12,
+      512,
+      512
+    ],
+    "g_t231": [
+      12,
+      512,
+      512
+    ],
+    "t232": [
+      12,
+      512,
+      512
+    ],
+    "g_t232": [
+      12,
+      512,
+      512
+    ],
+    "t233": [
+      12,
+      512,
+      512
+    ],
+    "g_t233": [
+      12,
+      512,
+      512
+    ],
+    "t234": [
+      12,
+      512,
+      64
+    ],
+    "g_t234": [
+      12,
+      512,
+      64
+    ],
+    "t235": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t235": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t236": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t236": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t237": [
+      512,
+      768
+    ],
+    "g_t237": [
+      512,
+      768
+    ],
+    "t238": [
+      512,
+      768
+    ],
+    "g_t238": [
+      512,
+      768
+    ],
+    "t239": [
+      512,
+      768
+    ],
+    "g_t239": [
+      512,
+      768
+    ],
+    "t240": [
+      512,
+      768
+    ],
+    "g_t240": [
+      512,
+      768
+    ],
+    "t241": [
+      512,
+      768
+    ],
+    "g_t241": [
+      512,
+      768
+    ],
+    "t242": [
+      512,
+      3072
+    ],
+    "g_t242": [
+      512,
+      3072
+    ],
+    "t243": [
+      512,
+      3072
+    ],
+    "g_t243": [
+      512,
+      3072
+    ],
+    "t244": [
+      512,
+      3072
+    ],
+    "g_t244": [
+      512,
+      3072
+    ],
+    "t245": [
+      512,
+      768
+    ],
+    "g_t245": [
+      512,
+      768
+    ],
+    "t246": [
+      512,
+      768
+    ],
+    "g_t246": [
+      512,
+      768
+    ],
+    "t247": [
+      512,
+      768
+    ],
+    "g_t247": [
+      512,
+      768
+    ],
+    "t248": [
+      512,
+      768
+    ],
+    "g_t248": [
+      512,
+      768
+    ],
+    "t249": [
+      512,
+      768
+    ],
+    "g_t249": [
+      512,
+      768
+    ],
+    "t250": [
+      512,
+      768
+    ],
+    "g_t250": [
+      512,
+      768
+    ],
+    "t251": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t251": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t252": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t252": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t253": [
+      12,
+      512,
+      64
+    ],
+    "g_t253": [
+      12,
+      512,
+      64
+    ],
+    "t254": [
+      512,
+      768
+    ],
+    "g_t254": [
+      512,
+      768
+    ],
+    "t255": [
+      512,
+      768
+    ],
+    "g_t255": [
+      512,
+      768
+    ],
+    "t256": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t256": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t257": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t257": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t258": [
+      12,
+      512,
+      64
+    ],
+    "g_t258": [
+      12,
+      512,
+      64
+    ],
+    "t259": [
+      512,
+      768
+    ],
+    "g_t259": [
+      512,
+      768
+    ],
+    "t260": [
+      512,
+      768
+    ],
+    "g_t260": [
+      512,
+      768
+    ],
+    "t261": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t261": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t262": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t262": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t263": [
+      12,
+      512,
+      64
+    ],
+    "g_t263": [
+      12,
+      512,
+      64
+    ],
+    "t264": [
+      12,
+      64,
+      512
+    ],
+    "g_t264": [
+      12,
+      64,
+      512
+    ],
+    "t265": [
+      12,
+      512,
+      512
+    ],
+    "g_t265": [
+      12,
+      512,
+      512
+    ],
+    "t266": [
+      12,
+      512,
+      512
+    ],
+    "g_t266": [
+      12,
+      512,
+      512
+    ],
+    "t267": [
+      12,
+      512,
+      512
+    ],
+    "g_t267": [
+      12,
+      512,
+      512
+    ],
+    "t268": [
+      12,
+      512,
+      512
+    ],
+    "g_t268": [
+      12,
+      512,
+      512
+    ],
+    "t269": [
+      12,
+      512,
+      64
+    ],
+    "g_t269": [
+      12,
+      512,
+      64
+    ],
+    "t270": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t270": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t271": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t271": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t272": [
+      512,
+      768
+    ],
+    "g_t272": [
+      512,
+      768
+    ],
+    "t273": [
+      512,
+      768
+    ],
+    "g_t273": [
+      512,
+      768
+    ],
+    "t274": [
+      512,
+      768
+    ],
+    "g_t274": [
+      512,
+      768
+    ],
+    "t275": [
+      512,
+      768
+    ],
+    "g_t275": [
+      512,
+      768
+    ],
+    "t276": [
+      512,
+      768
+    ],
+    "g_t276": [
+      512,
+      768
+    ],
+    "t277": [
+      512,
+      3072
+    ],
+    "g_t277": [
+      512,
+      3072
+    ],
+    "t278": [
+      512,
+      3072
+    ],
+    "g_t278": [
+      512,
+      3072
+    ],
+    "t279": [
+      512,
+      3072
+    ],
+    "g_t279": [
+      512,
+      3072
+    ],
+    "t280": [
+      512,
+      768
+    ],
+    "g_t280": [
+      512,
+      768
+    ],
+    "t281": [
+      512,
+      768
+    ],
+    "g_t281": [
+      512,
+      768
+    ],
+    "t282": [
+      512,
+      768
+    ],
+    "g_t282": [
+      512,
+      768
+    ],
+    "t283": [
+      512,
+      768
+    ],
+    "g_t283": [
+      512,
+      768
+    ],
+    "t284": [
+      512,
+      768
+    ],
+    "g_t284": [
+      512,
+      768
+    ],
+    "t285": [
+      512,
+      768
+    ],
+    "g_t285": [
+      512,
+      768
+    ],
+    "t286": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t286": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t287": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t287": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t288": [
+      12,
+      512,
+      64
+    ],
+    "g_t288": [
+      12,
+      512,
+      64
+    ],
+    "t289": [
+      512,
+      768
+    ],
+    "g_t289": [
+      512,
+      768
+    ],
+    "t290": [
+      512,
+      768
+    ],
+    "g_t290": [
+      512,
+      768
+    ],
+    "t291": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t291": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t292": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t292": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t293": [
+      12,
+      512,
+      64
+    ],
+    "g_t293": [
+      12,
+      512,
+      64
+    ],
+    "t294": [
+      512,
+      768
+    ],
+    "g_t294": [
+      512,
+      768
+    ],
+    "t295": [
+      512,
+      768
+    ],
+    "g_t295": [
+      512,
+      768
+    ],
+    "t296": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t296": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t297": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t297": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t298": [
+      12,
+      512,
+      64
+    ],
+    "g_t298": [
+      12,
+      512,
+      64
+    ],
+    "t299": [
+      12,
+      64,
+      512
+    ],
+    "g_t299": [
+      12,
+      64,
+      512
+    ],
+    "t300": [
+      12,
+      512,
+      512
+    ],
+    "g_t300": [
+      12,
+      512,
+      512
+    ],
+    "t301": [
+      12,
+      512,
+      512
+    ],
+    "g_t301": [
+      12,
+      512,
+      512
+    ],
+    "t302": [
+      12,
+      512,
+      512
+    ],
+    "g_t302": [
+      12,
+      512,
+      512
+    ],
+    "t303": [
+      12,
+      512,
+      512
+    ],
+    "g_t303": [
+      12,
+      512,
+      512
+    ],
+    "t304": [
+      12,
+      512,
+      64
+    ],
+    "g_t304": [
+      12,
+      512,
+      64
+    ],
+    "t305": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t305": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t306": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t306": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t307": [
+      512,
+      768
+    ],
+    "g_t307": [
+      512,
+      768
+    ],
+    "t308": [
+      512,
+      768
+    ],
+    "g_t308": [
+      512,
+      768
+    ],
+    "t309": [
+      512,
+      768
+    ],
+    "g_t309": [
+      512,
+      768
+    ],
+    "t310": [
+      512,
+      768
+    ],
+    "g_t310": [
+      512,
+      768
+    ],
+    "t311": [
+      512,
+      768
+    ],
+    "g_t311": [
+      512,
+      768
+    ],
+    "t312": [
+      512,
+      3072
+    ],
+    "g_t312": [
+      512,
+      3072
+    ],
+    "t313": [
+      512,
+      3072
+    ],
+    "g_t313": [
+      512,
+      3072
+    ],
+    "t314": [
+      512,
+      3072
+    ],
+    "g_t314": [
+      512,
+      3072
+    ],
+    "t315": [
+      512,
+      768
+    ],
+    "g_t315": [
+      512,
+      768
+    ],
+    "t316": [
+      512,
+      768
+    ],
+    "g_t316": [
+      512,
+      768
+    ],
+    "t317": [
+      512,
+      768
+    ],
+    "g_t317": [
+      512,
+      768
+    ],
+    "t318": [
+      512,
+      768
+    ],
+    "g_t318": [
+      512,
+      768
+    ],
+    "t319": [
+      512,
+      768
+    ],
+    "g_t319": [
+      512,
+      768
+    ],
+    "t320": [
+      512,
+      768
+    ],
+    "g_t320": [
+      512,
+      768
+    ],
+    "t321": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t321": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t322": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t322": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t323": [
+      12,
+      512,
+      64
+    ],
+    "g_t323": [
+      12,
+      512,
+      64
+    ],
+    "t324": [
+      512,
+      768
+    ],
+    "g_t324": [
+      512,
+      768
+    ],
+    "t325": [
+      512,
+      768
+    ],
+    "g_t325": [
+      512,
+      768
+    ],
+    "t326": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t326": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t327": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t327": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t328": [
+      12,
+      512,
+      64
+    ],
+    "g_t328": [
+      12,
+      512,
+      64
+    ],
+    "t329": [
+      512,
+      768
+    ],
+    "g_t329": [
+      512,
+      768
+    ],
+    "t330": [
+      512,
+      768
+    ],
+    "g_t330": [
+      512,
+      768
+    ],
+    "t331": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t331": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t332": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t332": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t333": [
+      12,
+      512,
+      64
+    ],
+    "g_t333": [
+      12,
+      512,
+      64
+    ],
+    "t334": [
+      12,
+      64,
+      512
+    ],
+    "g_t334": [
+      12,
+      64,
+      512
+    ],
+    "t335": [
+      12,
+      512,
+      512
+    ],
+    "g_t335": [
+      12,
+      512,
+      512
+    ],
+    "t336": [
+      12,
+      512,
+      512
+    ],
+    "g_t336": [
+      12,
+      512,
+      512
+    ],
+    "t337": [
+      12,
+      512,
+      512
+    ],
+    "g_t337": [
+      12,
+      512,
+      512
+    ],
+    "t338": [
+      12,
+      512,
+      512
+    ],
+    "g_t338": [
+      12,
+      512,
+      512
+    ],
+    "t339": [
+      12,
+      512,
+      64
+    ],
+    "g_t339": [
+      12,
+      512,
+      64
+    ],
+    "t340": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t340": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t341": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t341": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t342": [
+      512,
+      768
+    ],
+    "g_t342": [
+      512,
+      768
+    ],
+    "t343": [
+      512,
+      768
+    ],
+    "g_t343": [
+      512,
+      768
+    ],
+    "t344": [
+      512,
+      768
+    ],
+    "g_t344": [
+      512,
+      768
+    ],
+    "t345": [
+      512,
+      768
+    ],
+    "g_t345": [
+      512,
+      768
+    ],
+    "t346": [
+      512,
+      768
+    ],
+    "g_t346": [
+      512,
+      768
+    ],
+    "t347": [
+      512,
+      3072
+    ],
+    "g_t347": [
+      512,
+      3072
+    ],
+    "t348": [
+      512,
+      3072
+    ],
+    "g_t348": [
+      512,
+      3072
+    ],
+    "t349": [
+      512,
+      3072
+    ],
+    "g_t349": [
+      512,
+      3072
+    ],
+    "t350": [
+      512,
+      768
+    ],
+    "g_t350": [
+      512,
+      768
+    ],
+    "t351": [
+      512,
+      768
+    ],
+    "g_t351": [
+      512,
+      768
+    ],
+    "t352": [
+      512,
+      768
+    ],
+    "g_t352": [
+      512,
+      768
+    ],
+    "t353": [
+      512,
+      768
+    ],
+    "g_t353": [
+      512,
+      768
+    ],
+    "t354": [
+      512,
+      768
+    ],
+    "g_t354": [
+      512,
+      768
+    ],
+    "t355": [
+      512,
+      768
+    ],
+    "g_t355": [
+      512,
+      768
+    ],
+    "t356": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t356": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t357": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t357": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t358": [
+      12,
+      512,
+      64
+    ],
+    "g_t358": [
+      12,
+      512,
+      64
+    ],
+    "t359": [
+      512,
+      768
+    ],
+    "g_t359": [
+      512,
+      768
+    ],
+    "t360": [
+      512,
+      768
+    ],
+    "g_t360": [
+      512,
+      768
+    ],
+    "t361": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t361": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t362": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t362": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t363": [
+      12,
+      512,
+      64
+    ],
+    "g_t363": [
+      12,
+      512,
+      64
+    ],
+    "t364": [
+      512,
+      768
+    ],
+    "g_t364": [
+      512,
+      768
+    ],
+    "t365": [
+      512,
+      768
+    ],
+    "g_t365": [
+      512,
+      768
+    ],
+    "t366": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t366": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t367": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t367": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t368": [
+      12,
+      512,
+      64
+    ],
+    "g_t368": [
+      12,
+      512,
+      64
+    ],
+    "t369": [
+      12,
+      64,
+      512
+    ],
+    "g_t369": [
+      12,
+      64,
+      512
+    ],
+    "t370": [
+      12,
+      512,
+      512
+    ],
+    "g_t370": [
+      12,
+      512,
+      512
+    ],
+    "t371": [
+      12,
+      512,
+      512
+    ],
+    "g_t371": [
+      12,
+      512,
+      512
+    ],
+    "t372": [
+      12,
+      512,
+      512
+    ],
+    "g_t372": [
+      12,
+      512,
+      512
+    ],
+    "t373": [
+      12,
+      512,
+      512
+    ],
+    "g_t373": [
+      12,
+      512,
+      512
+    ],
+    "t374": [
+      12,
+      512,
+      64
+    ],
+    "g_t374": [
+      12,
+      512,
+      64
+    ],
+    "t375": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t375": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t376": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t376": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t377": [
+      512,
+      768
+    ],
+    "g_t377": [
+      512,
+      768
+    ],
+    "t378": [
+      512,
+      768
+    ],
+    "g_t378": [
+      512,
+      768
+    ],
+    "t379": [
+      512,
+      768
+    ],
+    "g_t379": [
+      512,
+      768
+    ],
+    "t380": [
+      512,
+      768
+    ],
+    "g_t380": [
+      512,
+      768
+    ],
+    "t381": [
+      512,
+      768
+    ],
+    "g_t381": [
+      512,
+      768
+    ],
+    "t382": [
+      512,
+      3072
+    ],
+    "g_t382": [
+      512,
+      3072
+    ],
+    "t383": [
+      512,
+      3072
+    ],
+    "g_t383": [
+      512,
+      3072
+    ],
+    "t384": [
+      512,
+      3072
+    ],
+    "g_t384": [
+      512,
+      3072
+    ],
+    "t385": [
+      512,
+      768
+    ],
+    "g_t385": [
+      512,
+      768
+    ],
+    "t386": [
+      512,
+      768
+    ],
+    "g_t386": [
+      512,
+      768
+    ],
+    "t387": [
+      512,
+      768
+    ],
+    "g_t387": [
+      512,
+      768
+    ],
+    "t388": [
+      512,
+      768
+    ],
+    "g_t388": [
+      512,
+      768
+    ],
+    "t389": [
+      512,
+      768
+    ],
+    "g_t389": [
+      512,
+      768
+    ],
+    "t390": [
+      512,
+      768
+    ],
+    "g_t390": [
+      512,
+      768
+    ],
+    "t391": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t391": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t392": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t392": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t393": [
+      12,
+      512,
+      64
+    ],
+    "g_t393": [
+      12,
+      512,
+      64
+    ],
+    "t394": [
+      512,
+      768
+    ],
+    "g_t394": [
+      512,
+      768
+    ],
+    "t395": [
+      512,
+      768
+    ],
+    "g_t395": [
+      512,
+      768
+    ],
+    "t396": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t396": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t397": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t397": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t398": [
+      12,
+      512,
+      64
+    ],
+    "g_t398": [
+      12,
+      512,
+      64
+    ],
+    "t399": [
+      512,
+      768
+    ],
+    "g_t399": [
+      512,
+      768
+    ],
+    "t400": [
+      512,
+      768
+    ],
+    "g_t400": [
+      512,
+      768
+    ],
+    "t401": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t401": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t402": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t402": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t403": [
+      12,
+      512,
+      64
+    ],
+    "g_t403": [
+      12,
+      512,
+      64
+    ],
+    "t404": [
+      12,
+      64,
+      512
+    ],
+    "g_t404": [
+      12,
+      64,
+      512
+    ],
+    "t405": [
+      12,
+      512,
+      512
+    ],
+    "g_t405": [
+      12,
+      512,
+      512
+    ],
+    "t406": [
+      12,
+      512,
+      512
+    ],
+    "g_t406": [
+      12,
+      512,
+      512
+    ],
+    "t407": [
+      12,
+      512,
+      512
+    ],
+    "g_t407": [
+      12,
+      512,
+      512
+    ],
+    "t408": [
+      12,
+      512,
+      512
+    ],
+    "g_t408": [
+      12,
+      512,
+      512
+    ],
+    "t409": [
+      12,
+      512,
+      64
+    ],
+    "g_t409": [
+      12,
+      512,
+      64
+    ],
+    "t410": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "g_t410": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t411": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "g_t411": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t412": [
+      512,
+      768
+    ],
+    "g_t412": [
+      512,
+      768
+    ],
+    "t413": [
+      512,
+      768
+    ],
+    "g_t413": [
+      512,
+      768
+    ],
+    "t414": [
+      512,
+      768
+    ],
+    "g_t414": [
+      512,
+      768
+    ],
+    "t415": [
+      512,
+      768
+    ],
+    "g_t415": [
+      512,
+      768
+    ],
+    "t416": [
+      512,
+      768
+    ],
+    "g_t416": [
+      512,
+      768
+    ],
+    "t417": [
+      512,
+      3072
+    ],
+    "g_t417": [
+      512,
+      3072
+    ],
+    "t418": [
+      512,
+      3072
+    ],
+    "g_t418": [
+      512,
+      3072
+    ],
+    "t419": [
+      512,
+      3072
+    ],
+    "g_t419": [
+      512,
+      3072
+    ],
+    "t420": [
+      512,
+      768
+    ],
+    "g_t420": [
+      512,
+      768
+    ],
+    "t421": [
+      512,
+      768
+    ],
+    "g_t421": [
+      512,
+      768
+    ],
+    "t422": [
+      512,
+      768
+    ],
+    "g_t422": [
+      512,
+      768
+    ],
+    "t423": [
+      512,
+      768
+    ],
+    "g_t423": [
+      512,
+      768
+    ],
+    "t424": [
+      768,
+      40478
+    ],
+    "g_t424": [
+      768,
+      40478
+    ],
+    "t425": [
+      512,
+      40478
+    ],
+    "g_t425": [
+      512,
+      40478
+    ],
+    "t426": [
+      1
+    ],
+    "t427": [
+      40478,
+      768
+    ],
+    "t428": [
+      512,
+      768
+    ],
+    "t429": [
+      768,
+      512
+    ],
+    "t430": [
+      768,
+      40478
+    ],
+    "t431": [
+      40478,
+      768
+    ],
+    "t432": [
+      512,
+      768
+    ],
+    "t433": [
+      768
+    ],
+    "t434": [
+      768
+    ],
+    "t435": [
+      1,
+      768
+    ],
+    "t436": [
+      768
+    ],
+    "t437": [
+      768,
+      3072
+    ],
+    "t438": [
+      512,
+      3072
+    ],
+    "t439": [
+      3072,
+      512
+    ],
+    "t440": [
+      3072,
+      768
+    ],
+    "t441": [
+      512,
+      3072
+    ],
+    "t442": [
+      1,
+      3072
+    ],
+    "t443": [
+      3072
+    ],
+    "t444": [
+      3072,
+      768
+    ],
+    "t445": [
+      512,
+      768
+    ],
+    "t446": [
+      768,
+      512
+    ],
+    "t447": [
+      768,
+      3072
+    ],
+    "t448": [
+      512,
+      768
+    ],
+    "t449": [
+      768
+    ],
+    "t450": [
+      768
+    ],
+    "t451": [
+      1,
+      768
+    ],
+    "t452": [
+      768
+    ],
+    "t453": [
+      768,
+      768
+    ],
+    "t454": [
+      512,
+      768
+    ],
+    "t455": [
+      768,
+      512
+    ],
+    "t456": [
+      768,
+      768
+    ],
+    "t457": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t458": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t459": [
+      12,
+      512,
+      64
+    ],
+    "t460": [
+      12,
+      64,
+      512
+    ],
+    "t461": [
+      12,
+      512,
+      512
+    ],
+    "t462": [
+      12,
+      512,
+      512
+    ],
+    "t463": [
+      12,
+      512,
+      64
+    ],
+    "t464": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t465": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t466": [
+      512,
+      768
+    ],
+    "t467": [
+      1,
+      768
+    ],
+    "t468": [
+      768
+    ],
+    "t469": [
+      768,
+      768
+    ],
+    "t470": [
+      512,
+      768
+    ],
+    "t471": [
+      768,
+      512
+    ],
+    "t472": [
+      768,
+      768
+    ],
+    "t473": [
+      12,
+      512,
+      512
+    ],
+    "t474": [
+      12,
+      512,
+      512
+    ],
+    "t475": [
+      12,
+      512,
+      64
+    ],
+    "t476": [
+      12,
+      512,
+      64
+    ],
+    "t477": [
+      12,
+      64,
+      512
+    ],
+    "t478": [
+      12,
+      64,
+      512
+    ],
+    "t479": [
+      12,
+      512,
+      64
+    ],
+    "t480": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t481": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t482": [
+      512,
+      768
+    ],
+    "t483": [
+      1,
+      768
+    ],
+    "t484": [
+      768
+    ],
+    "t485": [
+      768,
+      768
+    ],
+    "t486": [
+      512,
+      768
+    ],
+    "t487": [
+      768,
+      512
+    ],
+    "t488": [
+      768,
+      768
+    ],
+    "t489": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t490": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t491": [
+      512,
+      768
+    ],
+    "t492": [
+      1,
+      768
+    ],
+    "t493": [
+      768
+    ],
+    "t494": [
+      768,
+      768
+    ],
+    "t495": [
+      512,
+      768
+    ],
+    "t496": [
+      768,
+      512
+    ],
+    "t497": [
+      768,
+      768
+    ],
+    "t498": [
+      512,
+      768
+    ],
+    "t499": [
+      768
+    ],
+    "t500": [
+      768
+    ],
+    "t501": [
+      1,
+      768
+    ],
+    "t502": [
+      768
+    ],
+    "t503": [
+      768,
+      3072
+    ],
+    "t504": [
+      512,
+      3072
+    ],
+    "t505": [
+      3072,
+      512
+    ],
+    "t506": [
+      3072,
+      768
+    ],
+    "t507": [
+      512,
+      3072
+    ],
+    "t508": [
+      1,
+      3072
+    ],
+    "t509": [
+      3072
+    ],
+    "t510": [
+      3072,
+      768
+    ],
+    "t511": [
+      512,
+      768
+    ],
+    "t512": [
+      768,
+      512
+    ],
+    "t513": [
+      768,
+      3072
+    ],
+    "t514": [
+      512,
+      768
+    ],
+    "t515": [
+      768
+    ],
+    "t516": [
+      768
+    ],
+    "t517": [
+      1,
+      768
+    ],
+    "t518": [
+      768
+    ],
+    "t519": [
+      768,
+      768
+    ],
+    "t520": [
+      512,
+      768
+    ],
+    "t521": [
+      768,
+      512
+    ],
+    "t522": [
+      768,
+      768
+    ],
+    "t523": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t524": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t525": [
+      12,
+      512,
+      64
+    ],
+    "t526": [
+      12,
+      64,
+      512
+    ],
+    "t527": [
+      12,
+      512,
+      512
+    ],
+    "t528": [
+      12,
+      512,
+      512
+    ],
+    "t529": [
+      12,
+      512,
+      64
+    ],
+    "t530": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t531": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t532": [
+      512,
+      768
+    ],
+    "t533": [
+      1,
+      768
+    ],
+    "t534": [
+      768
+    ],
+    "t535": [
+      768,
+      768
+    ],
+    "t536": [
+      512,
+      768
+    ],
+    "t537": [
+      768,
+      512
+    ],
+    "t538": [
+      768,
+      768
+    ],
+    "t539": [
+      12,
+      512,
+      512
+    ],
+    "t540": [
+      12,
+      512,
+      512
+    ],
+    "t541": [
+      12,
+      512,
+      64
+    ],
+    "t542": [
+      12,
+      512,
+      64
+    ],
+    "t543": [
+      12,
+      64,
+      512
+    ],
+    "t544": [
+      12,
+      64,
+      512
+    ],
+    "t545": [
+      12,
+      512,
+      64
+    ],
+    "t546": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t547": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t548": [
+      512,
+      768
+    ],
+    "t549": [
+      1,
+      768
+    ],
+    "t550": [
+      768
+    ],
+    "t551": [
+      768,
+      768
+    ],
+    "t552": [
+      512,
+      768
+    ],
+    "t553": [
+      768,
+      512
+    ],
+    "t554": [
+      768,
+      768
+    ],
+    "t555": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t556": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t557": [
+      512,
+      768
+    ],
+    "t558": [
+      1,
+      768
+    ],
+    "t559": [
+      768
+    ],
+    "t560": [
+      768,
+      768
+    ],
+    "t561": [
+      512,
+      768
+    ],
+    "t562": [
+      768,
+      512
+    ],
+    "t563": [
+      768,
+      768
+    ],
+    "t564": [
+      512,
+      768
+    ],
+    "t565": [
+      768
+    ],
+    "t566": [
+      768
+    ],
+    "t567": [
+      1,
+      768
+    ],
+    "t568": [
+      768
+    ],
+    "t569": [
+      768,
+      3072
+    ],
+    "t570": [
+      512,
+      3072
+    ],
+    "t571": [
+      3072,
+      512
+    ],
+    "t572": [
+      3072,
+      768
+    ],
+    "t573": [
+      512,
+      3072
+    ],
+    "t574": [
+      1,
+      3072
+    ],
+    "t575": [
+      3072
+    ],
+    "t576": [
+      3072,
+      768
+    ],
+    "t577": [
+      512,
+      768
+    ],
+    "t578": [
+      768,
+      512
+    ],
+    "t579": [
+      768,
+      3072
+    ],
+    "t580": [
+      512,
+      768
+    ],
+    "t581": [
+      768
+    ],
+    "t582": [
+      768
+    ],
+    "t583": [
+      1,
+      768
+    ],
+    "t584": [
+      768
+    ],
+    "t585": [
+      768,
+      768
+    ],
+    "t586": [
+      512,
+      768
+    ],
+    "t587": [
+      768,
+      512
+    ],
+    "t588": [
+      768,
+      768
+    ],
+    "t589": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t590": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t591": [
+      12,
+      512,
+      64
+    ],
+    "t592": [
+      12,
+      64,
+      512
+    ],
+    "t593": [
+      12,
+      512,
+      512
+    ],
+    "t594": [
+      12,
+      512,
+      512
+    ],
+    "t595": [
+      12,
+      512,
+      64
+    ],
+    "t596": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t597": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t598": [
+      512,
+      768
+    ],
+    "t599": [
+      1,
+      768
+    ],
+    "t600": [
+      768
+    ],
+    "t601": [
+      768,
+      768
+    ],
+    "t602": [
+      512,
+      768
+    ],
+    "t603": [
+      768,
+      512
+    ],
+    "t604": [
+      768,
+      768
+    ],
+    "t605": [
+      12,
+      512,
+      512
+    ],
+    "t606": [
+      12,
+      512,
+      512
+    ],
+    "t607": [
+      12,
+      512,
+      64
+    ],
+    "t608": [
+      12,
+      512,
+      64
+    ],
+    "t609": [
+      12,
+      64,
+      512
+    ],
+    "t610": [
+      12,
+      64,
+      512
+    ],
+    "t611": [
+      12,
+      512,
+      64
+    ],
+    "t612": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t613": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t614": [
+      512,
+      768
+    ],
+    "t615": [
+      1,
+      768
+    ],
+    "t616": [
+      768
+    ],
+    "t617": [
+      768,
+      768
+    ],
+    "t618": [
+      512,
+      768
+    ],
+    "t619": [
+      768,
+      512
+    ],
+    "t620": [
+      768,
+      768
+    ],
+    "t621": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t622": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t623": [
+      512,
+      768
+    ],
+    "t624": [
+      1,
+      768
+    ],
+    "t625": [
+      768
+    ],
+    "t626": [
+      768,
+      768
+    ],
+    "t627": [
+      512,
+      768
+    ],
+    "t628": [
+      768,
+      512
+    ],
+    "t629": [
+      768,
+      768
+    ],
+    "t630": [
+      512,
+      768
+    ],
+    "t631": [
+      768
+    ],
+    "t632": [
+      768
+    ],
+    "t633": [
+      1,
+      768
+    ],
+    "t634": [
+      768
+    ],
+    "t635": [
+      768,
+      3072
+    ],
+    "t636": [
+      512,
+      3072
+    ],
+    "t637": [
+      3072,
+      512
+    ],
+    "t638": [
+      3072,
+      768
+    ],
+    "t639": [
+      512,
+      3072
+    ],
+    "t640": [
+      1,
+      3072
+    ],
+    "t641": [
+      3072
+    ],
+    "t642": [
+      3072,
+      768
+    ],
+    "t643": [
+      512,
+      768
+    ],
+    "t644": [
+      768,
+      512
+    ],
+    "t645": [
+      768,
+      3072
+    ],
+    "t646": [
+      512,
+      768
+    ],
+    "t647": [
+      768
+    ],
+    "t648": [
+      768
+    ],
+    "t649": [
+      1,
+      768
+    ],
+    "t650": [
+      768
+    ],
+    "t651": [
+      768,
+      768
+    ],
+    "t652": [
+      512,
+      768
+    ],
+    "t653": [
+      768,
+      512
+    ],
+    "t654": [
+      768,
+      768
+    ],
+    "t655": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t656": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t657": [
+      12,
+      512,
+      64
+    ],
+    "t658": [
+      12,
+      64,
+      512
+    ],
+    "t659": [
+      12,
+      512,
+      512
+    ],
+    "t660": [
+      12,
+      512,
+      512
+    ],
+    "t661": [
+      12,
+      512,
+      64
+    ],
+    "t662": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t663": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t664": [
+      512,
+      768
+    ],
+    "t665": [
+      1,
+      768
+    ],
+    "t666": [
+      768
+    ],
+    "t667": [
+      768,
+      768
+    ],
+    "t668": [
+      512,
+      768
+    ],
+    "t669": [
+      768,
+      512
+    ],
+    "t670": [
+      768,
+      768
+    ],
+    "t671": [
+      12,
+      512,
+      512
+    ],
+    "t672": [
+      12,
+      512,
+      512
+    ],
+    "t673": [
+      12,
+      512,
+      64
+    ],
+    "t674": [
+      12,
+      512,
+      64
+    ],
+    "t675": [
+      12,
+      64,
+      512
+    ],
+    "t676": [
+      12,
+      64,
+      512
+    ],
+    "t677": [
+      12,
+      512,
+      64
+    ],
+    "t678": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t679": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t680": [
+      512,
+      768
+    ],
+    "t681": [
+      1,
+      768
+    ],
+    "t682": [
+      768
+    ],
+    "t683": [
+      768,
+      768
+    ],
+    "t684": [
+      512,
+      768
+    ],
+    "t685": [
+      768,
+      512
+    ],
+    "t686": [
+      768,
+      768
+    ],
+    "t687": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t688": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t689": [
+      512,
+      768
+    ],
+    "t690": [
+      1,
+      768
+    ],
+    "t691": [
+      768
+    ],
+    "t692": [
+      768,
+      768
+    ],
+    "t693": [
+      512,
+      768
+    ],
+    "t694": [
+      768,
+      512
+    ],
+    "t695": [
+      768,
+      768
+    ],
+    "t696": [
+      512,
+      768
+    ],
+    "t697": [
+      768
+    ],
+    "t698": [
+      768
+    ],
+    "t699": [
+      1,
+      768
+    ],
+    "t700": [
+      768
+    ],
+    "t701": [
+      768,
+      3072
+    ],
+    "t702": [
+      512,
+      3072
+    ],
+    "t703": [
+      3072,
+      512
+    ],
+    "t704": [
+      3072,
+      768
+    ],
+    "t705": [
+      512,
+      3072
+    ],
+    "t706": [
+      1,
+      3072
+    ],
+    "t707": [
+      3072
+    ],
+    "t708": [
+      3072,
+      768
+    ],
+    "t709": [
+      512,
+      768
+    ],
+    "t710": [
+      768,
+      512
+    ],
+    "t711": [
+      768,
+      3072
+    ],
+    "t712": [
+      512,
+      768
+    ],
+    "t713": [
+      768
+    ],
+    "t714": [
+      768
+    ],
+    "t715": [
+      1,
+      768
+    ],
+    "t716": [
+      768
+    ],
+    "t717": [
+      768,
+      768
+    ],
+    "t718": [
+      512,
+      768
+    ],
+    "t719": [
+      768,
+      512
+    ],
+    "t720": [
+      768,
+      768
+    ],
+    "t721": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t722": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t723": [
+      12,
+      512,
+      64
+    ],
+    "t724": [
+      12,
+      64,
+      512
+    ],
+    "t725": [
+      12,
+      512,
+      512
+    ],
+    "t726": [
+      12,
+      512,
+      512
+    ],
+    "t727": [
+      12,
+      512,
+      64
+    ],
+    "t728": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t729": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t730": [
+      512,
+      768
+    ],
+    "t731": [
+      1,
+      768
+    ],
+    "t732": [
+      768
+    ],
+    "t733": [
+      768,
+      768
+    ],
+    "t734": [
+      512,
+      768
+    ],
+    "t735": [
+      768,
+      512
+    ],
+    "t736": [
+      768,
+      768
+    ],
+    "t737": [
+      12,
+      512,
+      512
+    ],
+    "t738": [
+      12,
+      512,
+      512
+    ],
+    "t739": [
+      12,
+      512,
+      64
+    ],
+    "t740": [
+      12,
+      512,
+      64
+    ],
+    "t741": [
+      12,
+      64,
+      512
+    ],
+    "t742": [
+      12,
+      64,
+      512
+    ],
+    "t743": [
+      12,
+      512,
+      64
+    ],
+    "t744": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t745": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t746": [
+      512,
+      768
+    ],
+    "t747": [
+      1,
+      768
+    ],
+    "t748": [
+      768
+    ],
+    "t749": [
+      768,
+      768
+    ],
+    "t750": [
+      512,
+      768
+    ],
+    "t751": [
+      768,
+      512
+    ],
+    "t752": [
+      768,
+      768
+    ],
+    "t753": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t754": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t755": [
+      512,
+      768
+    ],
+    "t756": [
+      1,
+      768
+    ],
+    "t757": [
+      768
+    ],
+    "t758": [
+      768,
+      768
+    ],
+    "t759": [
+      512,
+      768
+    ],
+    "t760": [
+      768,
+      512
+    ],
+    "t761": [
+      768,
+      768
+    ],
+    "t762": [
+      512,
+      768
+    ],
+    "t763": [
+      768
+    ],
+    "t764": [
+      768
+    ],
+    "t765": [
+      1,
+      768
+    ],
+    "t766": [
+      768
+    ],
+    "t767": [
+      768,
+      3072
+    ],
+    "t768": [
+      512,
+      3072
+    ],
+    "t769": [
+      3072,
+      512
+    ],
+    "t770": [
+      3072,
+      768
+    ],
+    "t771": [
+      512,
+      3072
+    ],
+    "t772": [
+      1,
+      3072
+    ],
+    "t773": [
+      3072
+    ],
+    "t774": [
+      3072,
+      768
+    ],
+    "t775": [
+      512,
+      768
+    ],
+    "t776": [
+      768,
+      512
+    ],
+    "t777": [
+      768,
+      3072
+    ],
+    "t778": [
+      512,
+      768
+    ],
+    "t779": [
+      768
+    ],
+    "t780": [
+      768
+    ],
+    "t781": [
+      1,
+      768
+    ],
+    "t782": [
+      768
+    ],
+    "t783": [
+      768,
+      768
+    ],
+    "t784": [
+      512,
+      768
+    ],
+    "t785": [
+      768,
+      512
+    ],
+    "t786": [
+      768,
+      768
+    ],
+    "t787": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t788": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t789": [
+      12,
+      512,
+      64
+    ],
+    "t790": [
+      12,
+      64,
+      512
+    ],
+    "t791": [
+      12,
+      512,
+      512
+    ],
+    "t792": [
+      12,
+      512,
+      512
+    ],
+    "t793": [
+      12,
+      512,
+      64
+    ],
+    "t794": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t795": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t796": [
+      512,
+      768
+    ],
+    "t797": [
+      1,
+      768
+    ],
+    "t798": [
+      768
+    ],
+    "t799": [
+      768,
+      768
+    ],
+    "t800": [
+      512,
+      768
+    ],
+    "t801": [
+      768,
+      512
+    ],
+    "t802": [
+      768,
+      768
+    ],
+    "t803": [
+      12,
+      512,
+      512
+    ],
+    "t804": [
+      12,
+      512,
+      512
+    ],
+    "t805": [
+      12,
+      512,
+      64
+    ],
+    "t806": [
+      12,
+      512,
+      64
+    ],
+    "t807": [
+      12,
+      64,
+      512
+    ],
+    "t808": [
+      12,
+      64,
+      512
+    ],
+    "t809": [
+      12,
+      512,
+      64
+    ],
+    "t810": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t811": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t812": [
+      512,
+      768
+    ],
+    "t813": [
+      1,
+      768
+    ],
+    "t814": [
+      768
+    ],
+    "t815": [
+      768,
+      768
+    ],
+    "t816": [
+      512,
+      768
+    ],
+    "t817": [
+      768,
+      512
+    ],
+    "t818": [
+      768,
+      768
+    ],
+    "t819": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t820": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t821": [
+      512,
+      768
+    ],
+    "t822": [
+      1,
+      768
+    ],
+    "t823": [
+      768
+    ],
+    "t824": [
+      768,
+      768
+    ],
+    "t825": [
+      512,
+      768
+    ],
+    "t826": [
+      768,
+      512
+    ],
+    "t827": [
+      768,
+      768
+    ],
+    "t828": [
+      512,
+      768
+    ],
+    "t829": [
+      768
+    ],
+    "t830": [
+      768
+    ],
+    "t831": [
+      1,
+      768
+    ],
+    "t832": [
+      768
+    ],
+    "t833": [
+      768,
+      3072
+    ],
+    "t834": [
+      512,
+      3072
+    ],
+    "t835": [
+      3072,
+      512
+    ],
+    "t836": [
+      3072,
+      768
+    ],
+    "t837": [
+      512,
+      3072
+    ],
+    "t838": [
+      1,
+      3072
+    ],
+    "t839": [
+      3072
+    ],
+    "t840": [
+      3072,
+      768
+    ],
+    "t841": [
+      512,
+      768
+    ],
+    "t842": [
+      768,
+      512
+    ],
+    "t843": [
+      768,
+      3072
+    ],
+    "t844": [
+      512,
+      768
+    ],
+    "t845": [
+      768
+    ],
+    "t846": [
+      768
+    ],
+    "t847": [
+      1,
+      768
+    ],
+    "t848": [
+      768
+    ],
+    "t849": [
+      768,
+      768
+    ],
+    "t850": [
+      512,
+      768
+    ],
+    "t851": [
+      768,
+      512
+    ],
+    "t852": [
+      768,
+      768
+    ],
+    "t853": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t854": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t855": [
+      12,
+      512,
+      64
+    ],
+    "t856": [
+      12,
+      64,
+      512
+    ],
+    "t857": [
+      12,
+      512,
+      512
+    ],
+    "t858": [
+      12,
+      512,
+      512
+    ],
+    "t859": [
+      12,
+      512,
+      64
+    ],
+    "t860": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t861": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t862": [
+      512,
+      768
+    ],
+    "t863": [
+      1,
+      768
+    ],
+    "t864": [
+      768
+    ],
+    "t865": [
+      768,
+      768
+    ],
+    "t866": [
+      512,
+      768
+    ],
+    "t867": [
+      768,
+      512
+    ],
+    "t868": [
+      768,
+      768
+    ],
+    "t869": [
+      12,
+      512,
+      512
+    ],
+    "t870": [
+      12,
+      512,
+      512
+    ],
+    "t871": [
+      12,
+      512,
+      64
+    ],
+    "t872": [
+      12,
+      512,
+      64
+    ],
+    "t873": [
+      12,
+      64,
+      512
+    ],
+    "t874": [
+      12,
+      64,
+      512
+    ],
+    "t875": [
+      12,
+      512,
+      64
+    ],
+    "t876": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t877": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t878": [
+      512,
+      768
+    ],
+    "t879": [
+      1,
+      768
+    ],
+    "t880": [
+      768
+    ],
+    "t881": [
+      768,
+      768
+    ],
+    "t882": [
+      512,
+      768
+    ],
+    "t883": [
+      768,
+      512
+    ],
+    "t884": [
+      768,
+      768
+    ],
+    "t885": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t886": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t887": [
+      512,
+      768
+    ],
+    "t888": [
+      1,
+      768
+    ],
+    "t889": [
+      768
+    ],
+    "t890": [
+      768,
+      768
+    ],
+    "t891": [
+      512,
+      768
+    ],
+    "t892": [
+      768,
+      512
+    ],
+    "t893": [
+      768,
+      768
+    ],
+    "t894": [
+      512,
+      768
+    ],
+    "t895": [
+      768
+    ],
+    "t896": [
+      768
+    ],
+    "t897": [
+      1,
+      768
+    ],
+    "t898": [
+      768
+    ],
+    "t899": [
+      768,
+      3072
+    ],
+    "t900": [
+      512,
+      3072
+    ],
+    "t901": [
+      3072,
+      512
+    ],
+    "t902": [
+      3072,
+      768
+    ],
+    "t903": [
+      512,
+      3072
+    ],
+    "t904": [
+      1,
+      3072
+    ],
+    "t905": [
+      3072
+    ],
+    "t906": [
+      3072,
+      768
+    ],
+    "t907": [
+      512,
+      768
+    ],
+    "t908": [
+      768,
+      512
+    ],
+    "t909": [
+      768,
+      3072
+    ],
+    "t910": [
+      512,
+      768
+    ],
+    "t911": [
+      768
+    ],
+    "t912": [
+      768
+    ],
+    "t913": [
+      1,
+      768
+    ],
+    "t914": [
+      768
+    ],
+    "t915": [
+      768,
+      768
+    ],
+    "t916": [
+      512,
+      768
+    ],
+    "t917": [
+      768,
+      512
+    ],
+    "t918": [
+      768,
+      768
+    ],
+    "t919": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t920": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t921": [
+      12,
+      512,
+      64
+    ],
+    "t922": [
+      12,
+      64,
+      512
+    ],
+    "t923": [
+      12,
+      512,
+      512
+    ],
+    "t924": [
+      12,
+      512,
+      512
+    ],
+    "t925": [
+      12,
+      512,
+      64
+    ],
+    "t926": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t927": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t928": [
+      512,
+      768
+    ],
+    "t929": [
+      1,
+      768
+    ],
+    "t930": [
+      768
+    ],
+    "t931": [
+      768,
+      768
+    ],
+    "t932": [
+      512,
+      768
+    ],
+    "t933": [
+      768,
+      512
+    ],
+    "t934": [
+      768,
+      768
+    ],
+    "t935": [
+      12,
+      512,
+      512
+    ],
+    "t936": [
+      12,
+      512,
+      512
+    ],
+    "t937": [
+      12,
+      512,
+      64
+    ],
+    "t938": [
+      12,
+      512,
+      64
+    ],
+    "t939": [
+      12,
+      64,
+      512
+    ],
+    "t940": [
+      12,
+      64,
+      512
+    ],
+    "t941": [
+      12,
+      512,
+      64
+    ],
+    "t942": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t943": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t944": [
+      512,
+      768
+    ],
+    "t945": [
+      1,
+      768
+    ],
+    "t946": [
+      768
+    ],
+    "t947": [
+      768,
+      768
+    ],
+    "t948": [
+      512,
+      768
+    ],
+    "t949": [
+      768,
+      512
+    ],
+    "t950": [
+      768,
+      768
+    ],
+    "t951": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t952": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t953": [
+      512,
+      768
+    ],
+    "t954": [
+      1,
+      768
+    ],
+    "t955": [
+      768
+    ],
+    "t956": [
+      768,
+      768
+    ],
+    "t957": [
+      512,
+      768
+    ],
+    "t958": [
+      768,
+      512
+    ],
+    "t959": [
+      768,
+      768
+    ],
+    "t960": [
+      512,
+      768
+    ],
+    "t961": [
+      768
+    ],
+    "t962": [
+      768
+    ],
+    "t963": [
+      1,
+      768
+    ],
+    "t964": [
+      768
+    ],
+    "t965": [
+      768,
+      3072
+    ],
+    "t966": [
+      512,
+      3072
+    ],
+    "t967": [
+      3072,
+      512
+    ],
+    "t968": [
+      3072,
+      768
+    ],
+    "t969": [
+      512,
+      3072
+    ],
+    "t970": [
+      1,
+      3072
+    ],
+    "t971": [
+      3072
+    ],
+    "t972": [
+      3072,
+      768
+    ],
+    "t973": [
+      512,
+      768
+    ],
+    "t974": [
+      768,
+      512
+    ],
+    "t975": [
+      768,
+      3072
+    ],
+    "t976": [
+      512,
+      768
+    ],
+    "t977": [
+      768
+    ],
+    "t978": [
+      768
+    ],
+    "t979": [
+      1,
+      768
+    ],
+    "t980": [
+      768
+    ],
+    "t981": [
+      768,
+      768
+    ],
+    "t982": [
+      512,
+      768
+    ],
+    "t983": [
+      768,
+      512
+    ],
+    "t984": [
+      768,
+      768
+    ],
+    "t985": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t986": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t987": [
+      12,
+      512,
+      64
+    ],
+    "t988": [
+      12,
+      64,
+      512
+    ],
+    "t989": [
+      12,
+      512,
+      512
+    ],
+    "t990": [
+      12,
+      512,
+      512
+    ],
+    "t991": [
+      12,
+      512,
+      64
+    ],
+    "t992": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t993": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t994": [
+      512,
+      768
+    ],
+    "t995": [
+      1,
+      768
+    ],
+    "t996": [
+      768
+    ],
+    "t997": [
+      768,
+      768
+    ],
+    "t998": [
+      512,
+      768
+    ],
+    "t999": [
+      768,
+      512
+    ],
+    "t1000": [
+      768,
+      768
+    ],
+    "t1001": [
+      12,
+      512,
+      512
+    ],
+    "t1002": [
+      12,
+      512,
+      512
+    ],
+    "t1003": [
+      12,
+      512,
+      64
+    ],
+    "t1004": [
+      12,
+      512,
+      64
+    ],
+    "t1005": [
+      12,
+      64,
+      512
+    ],
+    "t1006": [
+      12,
+      64,
+      512
+    ],
+    "t1007": [
+      12,
+      512,
+      64
+    ],
+    "t1008": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1009": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1010": [
+      512,
+      768
+    ],
+    "t1011": [
+      1,
+      768
+    ],
+    "t1012": [
+      768
+    ],
+    "t1013": [
+      768,
+      768
+    ],
+    "t1014": [
+      512,
+      768
+    ],
+    "t1015": [
+      768,
+      512
+    ],
+    "t1016": [
+      768,
+      768
+    ],
+    "t1017": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1018": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1019": [
+      512,
+      768
+    ],
+    "t1020": [
+      1,
+      768
+    ],
+    "t1021": [
+      768
+    ],
+    "t1022": [
+      768,
+      768
+    ],
+    "t1023": [
+      512,
+      768
+    ],
+    "t1024": [
+      768,
+      512
+    ],
+    "t1025": [
+      768,
+      768
+    ],
+    "t1026": [
+      512,
+      768
+    ],
+    "t1027": [
+      768
+    ],
+    "t1028": [
+      768
+    ],
+    "t1029": [
+      1,
+      768
+    ],
+    "t1030": [
+      768
+    ],
+    "t1031": [
+      768,
+      3072
+    ],
+    "t1032": [
+      512,
+      3072
+    ],
+    "t1033": [
+      3072,
+      512
+    ],
+    "t1034": [
+      3072,
+      768
+    ],
+    "t1035": [
+      512,
+      3072
+    ],
+    "t1036": [
+      1,
+      3072
+    ],
+    "t1037": [
+      3072
+    ],
+    "t1038": [
+      3072,
+      768
+    ],
+    "t1039": [
+      512,
+      768
+    ],
+    "t1040": [
+      768,
+      512
+    ],
+    "t1041": [
+      768,
+      3072
+    ],
+    "t1042": [
+      512,
+      768
+    ],
+    "t1043": [
+      768
+    ],
+    "t1044": [
+      768
+    ],
+    "t1045": [
+      1,
+      768
+    ],
+    "t1046": [
+      768
+    ],
+    "t1047": [
+      768,
+      768
+    ],
+    "t1048": [
+      512,
+      768
+    ],
+    "t1049": [
+      768,
+      512
+    ],
+    "t1050": [
+      768,
+      768
+    ],
+    "t1051": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1052": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1053": [
+      12,
+      512,
+      64
+    ],
+    "t1054": [
+      12,
+      64,
+      512
+    ],
+    "t1055": [
+      12,
+      512,
+      512
+    ],
+    "t1056": [
+      12,
+      512,
+      512
+    ],
+    "t1057": [
+      12,
+      512,
+      64
+    ],
+    "t1058": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1059": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1060": [
+      512,
+      768
+    ],
+    "t1061": [
+      1,
+      768
+    ],
+    "t1062": [
+      768
+    ],
+    "t1063": [
+      768,
+      768
+    ],
+    "t1064": [
+      512,
+      768
+    ],
+    "t1065": [
+      768,
+      512
+    ],
+    "t1066": [
+      768,
+      768
+    ],
+    "t1067": [
+      12,
+      512,
+      512
+    ],
+    "t1068": [
+      12,
+      512,
+      512
+    ],
+    "t1069": [
+      12,
+      512,
+      64
+    ],
+    "t1070": [
+      12,
+      512,
+      64
+    ],
+    "t1071": [
+      12,
+      64,
+      512
+    ],
+    "t1072": [
+      12,
+      64,
+      512
+    ],
+    "t1073": [
+      12,
+      512,
+      64
+    ],
+    "t1074": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1075": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1076": [
+      512,
+      768
+    ],
+    "t1077": [
+      1,
+      768
+    ],
+    "t1078": [
+      768
+    ],
+    "t1079": [
+      768,
+      768
+    ],
+    "t1080": [
+      512,
+      768
+    ],
+    "t1081": [
+      768,
+      512
+    ],
+    "t1082": [
+      768,
+      768
+    ],
+    "t1083": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1084": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1085": [
+      512,
+      768
+    ],
+    "t1086": [
+      1,
+      768
+    ],
+    "t1087": [
+      768
+    ],
+    "t1088": [
+      768,
+      768
+    ],
+    "t1089": [
+      512,
+      768
+    ],
+    "t1090": [
+      768,
+      512
+    ],
+    "t1091": [
+      768,
+      768
+    ],
+    "t1092": [
+      512,
+      768
+    ],
+    "t1093": [
+      768
+    ],
+    "t1094": [
+      768
+    ],
+    "t1095": [
+      1,
+      768
+    ],
+    "t1096": [
+      768
+    ],
+    "t1097": [
+      768,
+      3072
+    ],
+    "t1098": [
+      512,
+      3072
+    ],
+    "t1099": [
+      3072,
+      512
+    ],
+    "t1100": [
+      3072,
+      768
+    ],
+    "t1101": [
+      512,
+      3072
+    ],
+    "t1102": [
+      1,
+      3072
+    ],
+    "t1103": [
+      3072
+    ],
+    "t1104": [
+      3072,
+      768
+    ],
+    "t1105": [
+      512,
+      768
+    ],
+    "t1106": [
+      768,
+      512
+    ],
+    "t1107": [
+      768,
+      3072
+    ],
+    "t1108": [
+      512,
+      768
+    ],
+    "t1109": [
+      768
+    ],
+    "t1110": [
+      768
+    ],
+    "t1111": [
+      1,
+      768
+    ],
+    "t1112": [
+      768
+    ],
+    "t1113": [
+      768,
+      768
+    ],
+    "t1114": [
+      512,
+      768
+    ],
+    "t1115": [
+      768,
+      512
+    ],
+    "t1116": [
+      768,
+      768
+    ],
+    "t1117": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1118": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1119": [
+      12,
+      512,
+      64
+    ],
+    "t1120": [
+      12,
+      64,
+      512
+    ],
+    "t1121": [
+      12,
+      512,
+      512
+    ],
+    "t1122": [
+      12,
+      512,
+      512
+    ],
+    "t1123": [
+      12,
+      512,
+      64
+    ],
+    "t1124": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1125": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1126": [
+      512,
+      768
+    ],
+    "t1127": [
+      1,
+      768
+    ],
+    "t1128": [
+      768
+    ],
+    "t1129": [
+      768,
+      768
+    ],
+    "t1130": [
+      512,
+      768
+    ],
+    "t1131": [
+      768,
+      512
+    ],
+    "t1132": [
+      768,
+      768
+    ],
+    "t1133": [
+      12,
+      512,
+      512
+    ],
+    "t1134": [
+      12,
+      512,
+      512
+    ],
+    "t1135": [
+      12,
+      512,
+      64
+    ],
+    "t1136": [
+      12,
+      512,
+      64
+    ],
+    "t1137": [
+      12,
+      64,
+      512
+    ],
+    "t1138": [
+      12,
+      64,
+      512
+    ],
+    "t1139": [
+      12,
+      512,
+      64
+    ],
+    "t1140": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1141": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1142": [
+      512,
+      768
+    ],
+    "t1143": [
+      1,
+      768
+    ],
+    "t1144": [
+      768
+    ],
+    "t1145": [
+      768,
+      768
+    ],
+    "t1146": [
+      512,
+      768
+    ],
+    "t1147": [
+      768,
+      512
+    ],
+    "t1148": [
+      768,
+      768
+    ],
+    "t1149": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1150": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1151": [
+      512,
+      768
+    ],
+    "t1152": [
+      1,
+      768
+    ],
+    "t1153": [
+      768
+    ],
+    "t1154": [
+      768,
+      768
+    ],
+    "t1155": [
+      512,
+      768
+    ],
+    "t1156": [
+      768,
+      512
+    ],
+    "t1157": [
+      768,
+      768
+    ],
+    "t1158": [
+      512,
+      768
+    ],
+    "t1159": [
+      768
+    ],
+    "t1160": [
+      768
+    ],
+    "t1161": [
+      1,
+      768
+    ],
+    "t1162": [
+      768
+    ],
+    "t1163": [
+      768,
+      3072
+    ],
+    "t1164": [
+      512,
+      3072
+    ],
+    "t1165": [
+      3072,
+      512
+    ],
+    "t1166": [
+      3072,
+      768
+    ],
+    "t1167": [
+      512,
+      3072
+    ],
+    "t1168": [
+      1,
+      3072
+    ],
+    "t1169": [
+      3072
+    ],
+    "t1170": [
+      3072,
+      768
+    ],
+    "t1171": [
+      512,
+      768
+    ],
+    "t1172": [
+      768,
+      512
+    ],
+    "t1173": [
+      768,
+      3072
+    ],
+    "t1174": [
+      512,
+      768
+    ],
+    "t1175": [
+      768
+    ],
+    "t1176": [
+      768
+    ],
+    "t1177": [
+      1,
+      768
+    ],
+    "t1178": [
+      768
+    ],
+    "t1179": [
+      768,
+      768
+    ],
+    "t1180": [
+      512,
+      768
+    ],
+    "t1181": [
+      768,
+      512
+    ],
+    "t1182": [
+      768,
+      768
+    ],
+    "t1183": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1184": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1185": [
+      12,
+      512,
+      64
+    ],
+    "t1186": [
+      12,
+      64,
+      512
+    ],
+    "t1187": [
+      12,
+      512,
+      512
+    ],
+    "t1188": [
+      12,
+      512,
+      512
+    ],
+    "t1189": [
+      12,
+      512,
+      64
+    ],
+    "t1190": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1191": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1192": [
+      512,
+      768
+    ],
+    "t1193": [
+      1,
+      768
+    ],
+    "t1194": [
+      768
+    ],
+    "t1195": [
+      768,
+      768
+    ],
+    "t1196": [
+      512,
+      768
+    ],
+    "t1197": [
+      768,
+      512
+    ],
+    "t1198": [
+      768,
+      768
+    ],
+    "t1199": [
+      12,
+      512,
+      512
+    ],
+    "t1200": [
+      12,
+      512,
+      512
+    ],
+    "t1201": [
+      12,
+      512,
+      64
+    ],
+    "t1202": [
+      12,
+      512,
+      64
+    ],
+    "t1203": [
+      12,
+      64,
+      512
+    ],
+    "t1204": [
+      12,
+      64,
+      512
+    ],
+    "t1205": [
+      12,
+      512,
+      64
+    ],
+    "t1206": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1207": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1208": [
+      512,
+      768
+    ],
+    "t1209": [
+      1,
+      768
+    ],
+    "t1210": [
+      768
+    ],
+    "t1211": [
+      768,
+      768
+    ],
+    "t1212": [
+      512,
+      768
+    ],
+    "t1213": [
+      768,
+      512
+    ],
+    "t1214": [
+      768,
+      768
+    ],
+    "t1215": [
+      1,
+      12,
+      512,
+      64
+    ],
+    "t1216": [
+      1,
+      512,
+      12,
+      64
+    ],
+    "t1217": [
+      512,
+      768
+    ],
+    "t1218": [
+      1,
+      768
+    ],
+    "t1219": [
+      768
+    ],
+    "t1220": [
+      768,
+      768
+    ],
+    "t1221": [
+      512,
+      768
+    ],
+    "t1222": [
+      768,
+      512
+    ],
+    "t1223": [
+      768,
+      768
+    ],
+    "t1224": [
+      512,
+      768
+    ],
+    "t1225": [
+      768
+    ],
+    "t1226": [
+      768
+    ],
+    "t1227": [
+      512,
+      768
+    ],
+    "t1228": [
+      40478,
+      768
+    ]
+  }
+}

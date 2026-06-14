@@ -648,6 +648,102 @@ class TensorVM {
     }
   }
 
+  // === FP16 (half-precision) transport ===================================
+  //
+  // The model weights and gradients are shipped to/from every worker as base64
+  // on each step. Encoding them as 16-bit half-floats instead of 32-bit floats
+  // halves the payload size and the server-side string memory. Compute still
+  // happens in FP32 inside the VM (we decode FP16 -> FP32 on arrival), so this
+  // is a transport-only optimisation with no change to the math, only a small
+  // rounding error (~1e-3 relative) on the transmitted values.
+
+  // Convert the raw 32-bit pattern of a float into a 16-bit half-float.
+  // (Standard round-to-nearest-even half conversion, à la Three.js DataUtils.)
+  static _f32bitsToHalf(x) {
+    let bits = (x >> 16) & 0x8000;        // sign
+    let m = (x >> 12) & 0x07ff;           // mantissa (with rounding bit)
+    const e = (x >> 23) & 0xff;           // exponent
+    if (e < 103) return bits;             // too small -> signed zero
+    if (e > 142) {                        // too large -> Inf / NaN
+      bits |= 0x7c00;
+      bits |= ((e === 255) ? 0 : 1) && (x & 0x007fffff);
+      return bits;
+    }
+    if (e < 113) {                        // subnormal half
+      m |= 0x0800;
+      bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
+      return bits;
+    }
+    bits |= ((e - 112) << 10) | (m >> 1); // normal half
+    bits += m & 1;                        // round to nearest even
+    return bits;
+  }
+
+  static halfToFloat32(h) {
+    const s = (h & 0x8000) >> 15;
+    const e = (h & 0x7c00) >> 10;
+    const f = h & 0x03ff;
+    if (e === 0) return (s ? -1 : 1) * Math.pow(2, -14) * (f / 1024);
+    if (e === 0x1f) return f ? NaN : (s ? -Infinity : Infinity);
+    return (s ? -1 : 1) * Math.pow(2, e - 15) * (1 + f / 1024);
+  }
+
+  // Single-value helper (convenient for tests).
+  static float32ToHalf(val) {
+    const fbuf = new Float32Array(1);
+    fbuf[0] = val;
+    return TensorVM._f32bitsToHalf(new Int32Array(fbuf.buffer)[0]);
+  }
+
+  static float32ArrayToFloat16Base64(f32) {
+    const u16 = new Uint16Array(f32.length);
+    const fbuf = new Float32Array(1);
+    const ibuf = new Int32Array(fbuf.buffer);
+    for (let i = 0; i < f32.length; i++) {
+      fbuf[0] = f32[i];
+      u16[i] = TensorVM._f32bitsToHalf(ibuf[0]);
+    }
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(u16.buffer, u16.byteOffset, u16.byteLength).toString('base64');
+    }
+    const bytes = new Uint8Array(u16.buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  static float16Base64ToFloat32Array(base64) {
+    let u16;
+    if (typeof Buffer !== 'undefined') {
+      const buf = Buffer.from(base64, 'base64');
+      // Copy into a fresh, 2-byte-aligned ArrayBuffer (Buffer pooling can hand
+      // back an odd byteOffset that Uint16Array would reject).
+      const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+      u16 = new Uint16Array(ab);
+    } else {
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      u16 = new Uint16Array(bytes.buffer);
+    }
+    const f32 = new Float32Array(u16.length);
+    for (let i = 0; i < u16.length; i++) f32[i] = TensorVM.halfToFloat32(u16[i]);
+    return f32;
+  }
+
+  // Dispatchers used by the trainer/worker so the precision is a single switch.
+  static encodeBase64(f32, dtype) {
+    return dtype === 'fp16'
+      ? TensorVM.float32ArrayToFloat16Base64(f32)
+      : TensorVM.float32ArrayToBase64(f32);
+  }
+
+  static decodeBase64(base64, dtype) {
+    return dtype === 'fp16'
+      ? TensorVM.float16Base64ToFloat32Array(base64)
+      : TensorVM.base64ToFloat32Array(base64);
+  }
+
   execute(dslText) {
     const lines = dslText.split("\n");
     for (let lineNo = 0; lineNo < lines.length; lineNo++) {
@@ -781,15 +877,126 @@ class TensorVM {
         assign(out, a);
         break;
       }
+      case 'embedding': {
+        const out = this.getTensorOrScalar(args[0]);
+        const table = this.getTensorOrScalar(args[1]);
+        const ids = this.getTensorOrScalar(args[2]);
+        embedding(out, table, ids);
+        break;
+      }
+      case 'embedding_grad': {
+        const gTable = this.getTensorOrScalar(args[0]);
+        const dy = this.getTensorOrScalar(args[1]);
+        const ids = this.getTensorOrScalar(args[2]);
+        embeddingGrad(gTable, dy, ids);
+        break;
+      }
+      case 'layernorm': {
+        const out = this.getTensorOrScalar(args[0]);
+        const x = this.getTensorOrScalar(args[1]);
+        const gamma = this.getTensorOrScalar(args[2]);
+        const beta = this.getTensorOrScalar(args[3]);
+        layernorm(out, x, gamma, beta);
+        break;
+      }
+      case 'layernorm_grad': {
+        const dx = this.getTensorOrScalar(args[0]);
+        const dgamma = this.getTensorOrScalar(args[1]);
+        const dbeta = this.getTensorOrScalar(args[2]);
+        const dy = this.getTensorOrScalar(args[3]);
+        const x = this.getTensorOrScalar(args[4]);
+        const gamma = this.getTensorOrScalar(args[5]);
+        layernormGrad(dx, dgamma, dbeta, dy, x, gamma);
+        break;
+      }
       default:
         throw new Error(`Unknown opcode: "${op}"`);
     }
   }
 }
 
+// === Embedding (row gather) and its scatter-add gradient ===================
+// table: [V, d], ids: [...] integer indices (stored as floats), out: [...ids, d]
+function embedding(out, table, ids) {
+  const d = table.shape[table.shape.length - 1];
+  const n = ids.size;
+  for (let i = 0; i < n; i++) {
+    const row = Math.round(ids.data[ids.offset + i]);
+    const tBase = table.offset + row * d;
+    const oBase = i * d;
+    for (let j = 0; j < d; j++) out.data[oBase + j] = table.data[tBase + j];
+  }
+}
+// gTable: [V, d] (zeroed then scatter-added), dy: [...ids, d], ids: [...]
+function embeddingGrad(gTable, dy, ids) {
+  gTable.data.fill(0);
+  const d = gTable.shape[gTable.shape.length - 1];
+  const n = ids.size;
+  for (let i = 0; i < n; i++) {
+    const row = Math.round(ids.data[ids.offset + i]);
+    const gBase = row * d;
+    const yBase = dy.offset + i * d;
+    for (let j = 0; j < d; j++) gTable.data[gBase + j] += dy.data[yBase + j];
+  }
+}
+
+// === LayerNorm over the last dimension =====================================
+const LN_EPS = 1e-5;
+function layernorm(out, x, gamma, beta) {
+  const d = x.shape[x.shape.length - 1];
+  const rows = x.size / d;
+  for (let r = 0; r < rows; r++) {
+    const base = r * d;
+    let mean = 0;
+    for (let j = 0; j < d; j++) mean += x.data[x.offset + base + j];
+    mean /= d;
+    let v = 0;
+    for (let j = 0; j < d; j++) { const c = x.data[x.offset + base + j] - mean; v += c * c; }
+    const rstd = 1 / Math.sqrt(v / d + LN_EPS);
+    for (let j = 0; j < d; j++) {
+      const xhat = (x.data[x.offset + base + j] - mean) * rstd;
+      out.data[base + j] = xhat * gamma.data[gamma.offset + j] + beta.data[beta.offset + j];
+    }
+  }
+}
+// Standard LayerNorm backward producing dx, and reduced dgamma/dbeta over rows.
+function layernormGrad(dx, dgamma, dbeta, dy, x, gamma) {
+  const d = x.shape[x.shape.length - 1];
+  const rows = x.size / d;
+  dgamma.data.fill(0);
+  dbeta.data.fill(0);
+  const xhat = new Float32Array(d);
+  const dxhat = new Float32Array(d);
+  for (let r = 0; r < rows; r++) {
+    const base = r * d;
+    let mean = 0;
+    for (let j = 0; j < d; j++) mean += x.data[x.offset + base + j];
+    mean /= d;
+    let v = 0;
+    for (let j = 0; j < d; j++) { const c = x.data[x.offset + base + j] - mean; v += c * c; }
+    const rstd = 1 / Math.sqrt(v / d + LN_EPS);
+    let sumDxhat = 0, sumDxhatXhat = 0;
+    for (let j = 0; j < d; j++) {
+      const xh = (x.data[x.offset + base + j] - mean) * rstd;
+      xhat[j] = xh;
+      const dyj = dy.data[dy.offset + base + j];
+      dbeta.data[j] += dyj;
+      dgamma.data[j] += dyj * xh;
+      const dxh = dyj * gamma.data[gamma.offset + j];
+      dxhat[j] = dxh;
+      sumDxhat += dxh;
+      sumDxhatXhat += dxh * xh;
+    }
+    const mDxhat = sumDxhat / d, mDxhatXhat = sumDxhatXhat / d;
+    for (let j = 0; j < d; j++) {
+      dx.data[base + j] = rstd * (dxhat[j] - mDxhat - xhat[j] * mDxhatXhat);
+    }
+  }
+}
+
 // UMD-style export
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Tensor, TensorVM, matmul, broadcastOp, scalarOp, reduceSum, reduceMean, unaryOp, unaryGradOp, softmax, softmaxGrad, crossEntropy, assign };
+  module.exports = { Tensor, TensorVM, matmul, broadcastOp, scalarOp, reduceSum, reduceMean, unaryOp, unaryGradOp, softmax, softmaxGrad, crossEntropy, assign, embedding, embeddingGrad, layernorm, layernormGrad };
 } else {
   self.Tensor = Tensor;
   self.TensorVM = TensorVM;

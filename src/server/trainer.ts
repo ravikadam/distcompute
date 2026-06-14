@@ -2,6 +2,8 @@ import { Orchestrator } from './orchestrator';
 import { Compiler } from '../compiler/compiler';
 import { Linear } from '../compiler/modules';
 import { TensorVM } from '../public/vm';
+import { WandbLogger } from './wandb';
+import { estimateDslFlops } from './dslStats';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -20,6 +22,19 @@ function idxToChar(idx: number): string {
   return String.fromCharCode(idx - 1 + 97);
 }
 
+// A model the training loop can drive, decoupling the char-MLP from GPT so the
+// same loop (planning, FP16 transport, gradient aggregation, Adam, forecast,
+// wandb) serves both.
+type SliceInputs = Record<string, { shape: number[]; data: string; dtype: string }>;
+interface ModelRuntime {
+  dsl: string;
+  shapes: Record<string, number[]>;
+  examplesPerSlice: number;                 // for throughput/work accounting
+  numSlicesFor(idleWorkers: number): number;
+  makeStepInputs(numSlices: number): SliceInputs[]; // non-weight inputs per task
+  predict(): string;
+}
+
 export class Trainer {
   orchestrator: Orchestrator;
   isTraining = false;
@@ -34,6 +49,40 @@ export class Trainer {
   lr = 0.015;
   batchSize = 128;
   numWorkersPerBatch = 4; // split batch into 4 slices of size 32
+
+  // Training target (in optimizer steps). 0 means "run indefinitely" — there
+  // is then no defined amount of work remaining. When > 0, the dashboard can
+  // show % complete and an ETA, and the loop stops once the target is reached.
+  targetSteps = 0;
+
+  // Optional Weights & Biases logger. Null unless a key has been configured.
+  wandb: WandbLogger | null = null;
+
+  // Wire precision for weights/gradients. 'fp16' halves the per-task payload
+  // (compute stays FP32 on the worker). Integer targets are always sent as
+  // fp32 regardless, since fp16 cannot represent class indices above 2048.
+  precision: 'fp16' | 'fp32' = 'fp16';
+
+  // Model selection. When dslFilePath points to a compiled .dsl (+ manifest),
+  // we train that model (e.g. Tiny-GPT) byte-level; otherwise the built-in
+  // char-MLP. Set from config.
+  dslFilePath = '';
+  mode: 'char' | 'gpt' = 'char';
+  private gptBytes: Buffer | null = null;   // byte-level training corpus
+  private gptSampleNote = '(live sampling not yet available for GPT models)';
+
+  // Rolling average of recent step durations (ms), used to estimate ETA.
+  private recentStepMs: number[] = [];
+  private lastStepTimestamp = 0;
+
+  // Work accounting (FLOPs) derived from the compiled DSL, so "work done /
+  // remaining" is measured in actual compute, not just step counts.
+  flopsPerTask = 0;                  // forward+backward FLOPs for one task slice
+  private cumulativeTasks = 0;       // total tasks dispatched across all steps
+  private cumulativeExamples = 0;    // total training examples processed
+  private cumulativeFlops = 0;       // total FLOPs processed
+  private lastNumSlices = 0;         // slices in the most recent step
+  private lastExamplesPerStep = 0;   // examples in the most recent step
 
   // Model parameters (Float32Array storage)
   weights: Record<string, Float32Array> = {};
@@ -56,13 +105,15 @@ export class Trainer {
   }
 
   // Dynamically update training parameters and reset model weights
-  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string }) {
+  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string; targetSteps?: number; precision?: 'fp16' | 'fp32' }) {
     this.stop();
 
     if (config.lr !== undefined) this.lr = config.lr;
     if (config.batchSize !== undefined) this.batchSize = config.batchSize;
     if (config.hiddenDim !== undefined) this.hiddenDim = config.hiddenDim;
     if (config.contextLen !== undefined) this.contextLen = config.contextLen;
+    if (config.targetSteps !== undefined) this.targetSteps = config.targetSteps;
+    if (config.precision !== undefined) this.precision = config.precision;
     
     // Reset server-side file tracking
     if (this.datasetFd !== null) {
@@ -100,6 +151,10 @@ export class Trainer {
 
   // Initialize weights with He/Xavier-like initialization
   private initWeights() {
+    // Clear any previous parameters (e.g. when switching back from a GPT model).
+    this.weights = {};
+    this.adamM = {};
+    this.adamV = {};
     const w1Size = (this.contextLen * this.vocabSize) * this.hiddenDim;
     const b1Size = this.hiddenDim;
     const w2Size = this.hiddenDim * this.vocabSize;
@@ -162,27 +217,50 @@ export class Trainer {
     return { X, Y };
   }
 
+  // Decide how to split a training step across the available workers.
+  //
+  // Each task runs a fixed 32-row slice (the per-task batch dimension the
+  // model graph is compiled for). We create one slice per idle worker so
+  // every connected node gets work, scaling from a handful of devices to
+  // thousands. We never drop below the configured batch worth of slices, so
+  // small clusters still process a full batch (queued across fewer workers).
+  planSlices(idleWorkerCount: number): { numSlices: number; sliceSize: number } {
+    const sliceSize = 32;
+    const configuredSlices = Math.max(1, Math.round(this.batchSize / sliceSize));
+    const numSlices = Math.max(idleWorkerCount, configuredSlices);
+    return { numSlices, sliceSize };
+  }
+
   // Start the distributed training loop
   async start() {
     if (this.isTraining) return;
     this.isTraining = true;
-    console.log("Distributed Training Loop Started.");
 
-    // Setup compiler
-    const compiler = new Compiler();
-    const X_node = compiler.createNode("X", [32, this.contextLen * this.vocabSize]);
-    const targets_node = compiler.createNode("targets", [32]);
-
-    const fc = new Linear(compiler, "fc_fc1", this.contextLen * this.vocabSize, this.hiddenDim);
-    const fc2 = new Linear(compiler, "fc_fc2", this.hiddenDim, this.vocabSize);
-
-    const h = compiler.gelu(fc.forward(compiler, X_node));
-    const logits = fc2.forward(compiler, h);
-    const { loss } = compiler.cross_entropy(logits, targets_node);
-
-    const { dsl, shapes } = compiler.compile(loss, targets_node);
+    // Pick the model: a compiled .dsl file (e.g. Tiny-GPT) or the built-in char-MLP.
+    this.mode = this.dslFilePath && this.dslFilePath.trim().length > 0 ? 'gpt' : 'char';
+    let model: ModelRuntime;
+    try {
+      model = this.mode === 'gpt' ? this.buildGptModel() : this.buildCharModel();
+    } catch (e: any) {
+      console.error('Failed to build model:', e?.message || e);
+      this.orchestrator.eventLog.record('error', `Model build failed: ${e?.message || e}`, { level: 'error' });
+      this.isTraining = false;
+      return;
+    }
+    const { dsl, shapes } = model;
+    console.log(`Distributed Training Loop Started (${this.mode} model, ${Object.keys(this.weights).length} param tensors).`);
 
     this.tAdam = 0;
+    // Reset ETA timing for this run.
+    this.recentStepMs = [];
+    this.lastStepTimestamp = 0;
+
+    // Measure the per-task compute cost from the compiled DSL so we can report
+    // work done / remaining in FLOPs.
+    this.flopsPerTask = estimateDslFlops(dsl, shapes).flops;
+    this.cumulativeTasks = 0;
+    this.cumulativeExamples = 0;
+    this.cumulativeFlops = 0;
 
     while (this.isTraining) {
       // Wait until we have enough active workers
@@ -193,41 +271,28 @@ export class Trainer {
         continue;
       }
 
-      const currentBatchSize = this.batchSize;
-      const sliceSize = 32;
-      const numSlices = currentBatchSize / sliceSize; // 128 / 32 = 4 tasks
+      // One task per idle worker (the model decides the count + its own floor).
+      const numSlices = model.numSlicesFor(activeWorkers.length);
+      const currentBatchSize = numSlices * model.examplesPerSlice;
 
-      const batch = this.getBatch(currentBatchSize);
+      // Non-weight inputs per task: X/targets for char; tok/pos/mask/targets for GPT.
+      const sliceInputs = model.makeStepInputs(numSlices);
 
-      // Prepare task inputs
       const tasksPromises: Promise<any>[] = [];
-
       for (let s = 0; s < numSlices; s++) {
-        // Slice X and Y
-        const xSlice = batch.X.subarray(s * sliceSize * this.contextLen * this.vocabSize, (s + 1) * sliceSize * this.contextLen * this.vocabSize);
-        const ySlice = batch.Y.subarray(s * sliceSize, (s + 1) * sliceSize);
+        const taskInputs: Record<string, { shape: number[]; data: string; dtype: string }> = { ...sliceInputs[s] };
 
-        const taskInputs: Record<string, { shape: number[]; data: string }> = {
-          "X": {
-            shape: [sliceSize, this.contextLen * this.vocabSize],
-            data: TensorVM.float32ArrayToBase64(new Float32Array(xSlice))
-          },
-          "targets": {
-            shape: [sliceSize],
-            data: TensorVM.float32ArrayToBase64(new Float32Array(ySlice))
-          }
-        };
-
-        // Inject current global weights
+        // Inject current global weights (real-valued → fp16-safe).
         for (const [key, val] of Object.entries(this.weights)) {
           taskInputs[key] = {
             shape: shapes[key],
-            data: TensorVM.float32ArrayToBase64(val)
+            data: TensorVM.encodeBase64(val, this.precision),
+            dtype: this.precision
           };
         }
 
-        // Submit task
-        tasksPromises.push(this.orchestrator.submitTask(dsl, shapes, taskInputs));
+        // Submit task (precision = dtype the worker uses for gradient outputs)
+        tasksPromises.push(this.orchestrator.submitTask(dsl, shapes, taskInputs, this.precision));
       }
 
       try {
@@ -254,7 +319,7 @@ export class Trainer {
           }
 
           if (lossKey) {
-            const lossData = TensorVM.base64ToFloat32Array(res[lossKey].data);
+            const lossData = TensorVM.decodeBase64(res[lossKey].data, (res[lossKey] as any).dtype || this.precision);
             totalLossVal += lossData[0];
           }
 
@@ -262,7 +327,7 @@ export class Trainer {
           for (const key of Object.keys(this.weights)) {
             const gradKey = `g_${key}`;
             if (res[gradKey]) {
-              const gradData = TensorVM.base64ToFloat32Array(res[gradKey].data);
+              const gradData = TensorVM.decodeBase64(res[gradKey].data, (res[gradKey] as any).dtype || this.precision);
               for (let i = 0; i < grads[key].length; i++) {
                 grads[key][i] += gradData[i];
               }
@@ -281,10 +346,48 @@ export class Trainer {
         // Update weights using Adam optimizer
         this.applyAdamStep(grads);
         this.step++;
+
+        // Track step duration for the ETA estimate (rolling window of 50).
+        const nowTs = Date.now();
+        if (this.lastStepTimestamp > 0) {
+          this.recentStepMs.push(nowTs - this.lastStepTimestamp);
+          if (this.recentStepMs.length > 50) this.recentStepMs.shift();
+        }
+        this.lastStepTimestamp = nowTs;
+
+        // Accumulate work done (tasks, examples, FLOPs) for the forecast.
+        this.lastNumSlices = numSlices;
+        this.lastExamplesPerStep = currentBatchSize;
+        this.cumulativeTasks += numSlices;
+        this.cumulativeExamples += currentBatchSize;
+        this.cumulativeFlops += numSlices * this.flopsPerTask;
+
+        // Stream metrics to Weights & Biases (fail-soft; never blocks training).
+        if (this.wandb && this.wandb.active) {
+          const p = this.progress();
+          this.wandb.log({
+            step: this.step,
+            loss: this.loss,
+            epoch: this.epoch,
+            workers: this.orchestrator.workers.size,
+            examples_per_step: currentBatchSize,
+            ...(p.targetSteps > 0 ? { progress_pct: p.percent, eta_seconds: p.etaSeconds } : {})
+          });
+        }
+
         if (this.step % 10 === 0) {
           this.epoch = Math.floor(this.step / 50);
           console.log(`Step ${this.step} | Loss: ${this.loss.toFixed(4)} | Prediction: ${this.samplePrediction()}`);
           this.broadcastStatsToDashboards();
+        }
+
+        // Stop once the configured training target is reached.
+        if (this.targetSteps > 0 && this.step >= this.targetSteps) {
+          console.log(`Reached training target of ${this.targetSteps} steps. Stopping.`);
+          this.broadcastStatsToDashboards();
+          if (this.wandb && this.wandb.active) await this.wandb.finish();
+          this.isTraining = false;
+          break;
         }
 
         // Tiny delay
@@ -298,6 +401,188 @@ export class Trainer {
 
   stop() {
     this.isTraining = false;
+  }
+
+  // ---- Model runtimes -------------------------------------------------------
+
+  // Built-in character-level MLP (the original toy model).
+  private buildCharModel(): ModelRuntime {
+    if (!this.weights['fc_fc1_w']) this.initWeights(); // ensure char params
+    const compiler = new Compiler();
+    const X_node = compiler.createNode('X', [32, this.contextLen * this.vocabSize]);
+    const targets_node = compiler.createNode('targets', [32]);
+    const fc = new Linear(compiler, 'fc_fc1', this.contextLen * this.vocabSize, this.hiddenDim);
+    const fc2 = new Linear(compiler, 'fc_fc2', this.hiddenDim, this.vocabSize);
+    const h = compiler.gelu(fc.forward(compiler, X_node));
+    const logits = fc2.forward(compiler, h);
+    const { loss } = compiler.cross_entropy(logits, targets_node);
+    const { dsl, shapes } = compiler.compile(loss, targets_node);
+    const ctxVocab = this.contextLen * this.vocabSize;
+
+    return {
+      dsl, shapes,
+      examplesPerSlice: 32,
+      numSlicesFor: (idle) => this.planSlices(idle).numSlices,
+      makeStepInputs: (numSlices) => {
+        const sliceSize = 32;
+        const batch = this.getBatch(numSlices * sliceSize);
+        const out: SliceInputs[] = [];
+        for (let s = 0; s < numSlices; s++) {
+          const xSlice = batch.X.subarray(s * sliceSize * ctxVocab, (s + 1) * sliceSize * ctxVocab);
+          const ySlice = batch.Y.subarray(s * sliceSize, (s + 1) * sliceSize);
+          out.push({
+            X: { shape: [sliceSize, ctxVocab], data: TensorVM.encodeBase64(new Float32Array(xSlice), this.precision), dtype: this.precision },
+            targets: { shape: [sliceSize], data: TensorVM.float32ArrayToBase64(new Float32Array(ySlice)), dtype: 'fp32' }
+          });
+        }
+        return out;
+      },
+      predict: () => this.samplePrediction()
+    };
+  }
+
+  // GPT model loaded from a compiled .dsl file + manifest, trained byte-level.
+  private buildGptModel(): ModelRuntime {
+    const dslPath = path.resolve(this.dslFilePath);
+    const manifestPath = dslPath.replace(/\.dsl$/, '.manifest.json');
+    if (!fs.existsSync(dslPath)) throw new Error(`DSL file not found: ${dslPath}`);
+    if (!fs.existsSync(manifestPath)) throw new Error(`Manifest not found beside DSL: ${manifestPath}`);
+
+    const dsl = fs.readFileSync(dslPath, 'utf8');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const shapes: Record<string, number[]> = manifest.shapes;
+    const B: number = manifest.batch, S: number = manifest.seq, N = B * S;
+
+    // Byte-level training corpus (server dataset path, else the in-memory corpus).
+    if (this.datasetFilePath && this.datasetFilePath.trim()) {
+      this.gptBytes = fs.readFileSync(path.resolve(this.datasetFilePath));
+    } else {
+      this.gptBytes = Buffer.from(this.corpus, 'utf8');
+    }
+    if (this.gptBytes.length < S + 2) throw new Error('Dataset is smaller than one sequence; choose a larger corpus');
+
+    this.initGptWeights(manifest.parameters);
+
+    // Causal additive mask is constant for the whole run — encode once.
+    const maskArr = new Float32Array(S * S);
+    for (let i = 0; i < S; i++) for (let j = 0; j < S; j++) maskArr[i * S + j] = j <= i ? 0 : -1e9;
+    const maskInput = { shape: [1, S, S], data: TensorVM.float32ArrayToBase64(maskArr), dtype: 'fp32' };
+    const bytes = this.gptBytes;
+
+    return {
+      dsl, shapes,
+      examplesPerSlice: N, // tokens processed per task
+      numSlicesFor: (idle) => Math.max(1, idle),
+      makeStepInputs: (numSlices) => {
+        const out: SliceInputs[] = [];
+        for (let t = 0; t < numSlices; t++) {
+          const tok = new Float32Array(N), pos = new Float32Array(N), tgt = new Float32Array(N);
+          for (let b = 0; b < B; b++) {
+            const start = Math.floor(Math.random() * (bytes.length - S - 1));
+            for (let i = 0; i < S; i++) {
+              tok[b * S + i] = bytes[start + i];
+              tgt[b * S + i] = bytes[start + i + 1]; // next-byte target
+              pos[b * S + i] = i;
+            }
+          }
+          // Token/position/target indices stay fp32 (integer-valued).
+          out.push({
+            tok: { shape: [N], data: TensorVM.float32ArrayToBase64(tok), dtype: 'fp32' },
+            pos: { shape: [N], data: TensorVM.float32ArrayToBase64(pos), dtype: 'fp32' },
+            targets: { shape: [N], data: TensorVM.float32ArrayToBase64(tgt), dtype: 'fp32' },
+            mask: maskInput
+          });
+        }
+        return out;
+      },
+      predict: () => this.gptSampleNote
+    };
+  }
+
+  // Initialise GPT parameters from the manifest (GPT-1 style init).
+  private initGptWeights(params: { name: string; shape: number[] }[]) {
+    this.weights = {};
+    this.adamM = {};
+    this.adamV = {};
+    for (const p of params) {
+      const size = p.shape.reduce((a, b) => a * b, 1);
+      const arr = new Float32Array(size);
+      if (p.name.endsWith('_g')) arr.fill(1);           // LayerNorm gain
+      else if (p.name.endsWith('_b')) arr.fill(0);      // biases / LN beta
+      else for (let i = 0; i < size; i++) arr[i] = this.randn() * 0.02; // weights + embeddings
+      this.weights[p.name] = arr;
+      this.adamM[p.name] = new Float32Array(size);
+      this.adamV[p.name] = new Float32Array(size);
+    }
+  }
+
+  private randn(): number {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  /**
+   * Training progress, work accounting, throughput, per-task timing and an ETA.
+   *
+   * Work is measured in FLOPs derived from the compiled DSL (`flopsPerTask`), so
+   * "how much work is left" is real compute, not just a step count. The forecast
+   * combines measured throughput with the remaining work. With targetSteps === 0
+   * the run is open-ended, so target-relative fields are reported as -1.
+   */
+  progress() {
+    const avgStepMs = this.recentStepMs.length
+      ? this.recentStepMs.reduce((a, b) => a + b, 0) / this.recentStepMs.length
+      : 0;
+    const stepSec = avgStepMs / 1000;
+
+    // Measured throughput from the most recent step.
+    const examplesPerSec = stepSec > 0 ? this.lastExamplesPerStep / stepSec : 0;
+    const tasksPerSec = stepSec > 0 ? this.lastNumSlices / stepSec : 0;
+    const flopsPerSec = stepSec > 0 ? (this.lastNumSlices * this.flopsPerTask) / stepSec : 0;
+
+    const timing = this.orchestrator.getTaskTiming();
+
+    const base = {
+      // counters
+      step: this.step,
+      tasksCompleted: timing.totalCompleted,
+      examplesProcessed: this.cumulativeExamples,
+      flopsProcessed: this.cumulativeFlops,
+      flopsPerTask: this.flopsPerTask,
+      // throughput
+      examplesPerSec,
+      tasksPerSec,
+      flopsPerSec,
+      avgStepMs,
+      avgTaskComputeMs: timing.avgComputeMs,
+      avgTaskRoundTripMs: timing.avgRoundTripMs,
+    };
+
+    if (this.targetSteps <= 0) {
+      // Open-ended run: no fixed amount of work remaining.
+      return {
+        ...base,
+        targetSteps: 0, remaining: -1, percent: -1, etaSeconds: -1,
+        flopsTotal: -1, flopsRemaining: -1, examplesRemaining: -1, workPercent: -1
+      };
+    }
+
+    const remaining = Math.max(0, this.targetSteps - this.step);
+    const percent = Math.min(100, (this.step / this.targetSteps) * 100);
+    // Forecast remaining work from the most recent step's shape.
+    const examplesRemaining = remaining * (this.lastExamplesPerStep || this.batchSize);
+    const flopsRemaining = remaining * (this.lastNumSlices || 1) * this.flopsPerTask;
+    const flopsTotal = this.cumulativeFlops + flopsRemaining;
+    const workPercent = flopsTotal > 0 ? (this.cumulativeFlops / flopsTotal) * 100 : percent;
+    const etaSeconds = avgStepMs > 0 ? (remaining * avgStepMs) / 1000 : -1;
+
+    return {
+      ...base,
+      targetSteps: this.targetSteps, remaining, percent, etaSeconds,
+      flopsTotal, flopsRemaining, examplesRemaining, workPercent
+    };
   }
 
   // Apply Adam optimization updates
@@ -321,6 +606,8 @@ export class Trainer {
 
   // Generate text (sampling) based on current model weights
   samplePrediction(): string {
+    // GPT live sampling needs a separate B=1 forward graph; not wired yet.
+    if (this.mode === 'gpt') return this.gptSampleNote;
     let context = "hel"; // starting prompt
     let out = context;
 

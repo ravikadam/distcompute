@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    // "node16" replaces the deprecated "node"/"node10" resolution (removed in
+    // TS 7.0). It keeps CommonJS emit since package.json has no "type":"module",
+    // and clears TypeScript 5.9+ error TS5107 so `npm run build` succeeds.
+    "module": "node16",
+    "moduleResolution": "node16",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
