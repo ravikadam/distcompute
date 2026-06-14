@@ -94,15 +94,19 @@ export class Orchestrator {
         
         if (payload.type === 'register') {
           workerId = payload.workerId;
+          // Carry over cumulative stats if this worker is re-registering (e.g.
+          // after an auto-reconnect or tab reload with the same id), so the
+          // dashboard count doesn't reset to 0 and undercount the worker.
+          const prior = this.workers.get(workerId!);
           const node: WorkerNode = {
             id: workerId!,
             ws,
             status: 'idle',
             deviceInfo: payload.deviceInfo || { browser: 'Unknown', platform: 'Unknown', cores: 1, userAgent: '' },
             lastSeen: Date.now(),
-            completedCount: 0,
-            failedCount: 0,
-            throughput: 0
+            completedCount: prior?.completedCount ?? 0,
+            failedCount: prior?.failedCount ?? 0,
+            throughput: prior?.throughput ?? 0
           };
           this.workers.set(workerId!, node);
           console.log(`Worker registered: ${workerId} (${node.deviceInfo.platform}, ${node.deviceInfo.browser})`);
@@ -125,6 +129,19 @@ export class Orchestrator {
 
         else if (payload.type === 'task_completed') {
           const { taskId, outputs } = payload;
+
+          // Always credit the worker for a finished task and mark it alive —
+          // even if the task was already reassigned/timed out. Otherwise the
+          // admin COMPLETED count drifts below the worker's own tally and a
+          // busy worker that returns a late result looks idle/uncounted.
+          if (workerId && this.workers.has(workerId)) {
+            const worker = this.workers.get(workerId)!;
+            worker.status = 'idle';
+            worker.completedCount++;
+            worker.lastSeen = Date.now();
+            if (typeof payload.throughput === 'number') worker.throughput = payload.throughput;
+          }
+
           const task = this.activeTasks.get(taskId);
           if (task) {
             // Record how long this task took (worker compute + server round-trip).
@@ -133,16 +150,10 @@ export class Orchestrator {
             this.recordTaskTiming(computeMs, roundTripMs);
 
             this.activeTasks.delete(taskId);
-            if (workerId && this.workers.has(workerId)) {
-              const worker = this.workers.get(workerId)!;
-              worker.status = 'idle';
-              worker.completedCount++;
-              worker.lastSeen = Date.now();
-            }
             task.resolve(outputs);
-            this.broadcastToDashboards();
-            this.schedule();
           }
+          this.broadcastToDashboards();
+          this.schedule();
         }
 
         else if (payload.type === 'task_failed') {
@@ -278,7 +289,11 @@ export class Orchestrator {
   // Monitor heartbeats and drop unresponsive workers
   private checkHeartbeats() {
     const now = Date.now();
-    const heartbeatTimeout = 15000; // 15 seconds
+    // 45s (was 15s): browsers throttle background-tab timers and WebSocket
+    // traffic, so a brief tab-switch could drop a healthy worker. The worker
+    // also auto-reconnects, so this just reduces false drops. An actively
+    // computing worker stays alive via task_completed updating lastSeen.
+    const heartbeatTimeout = 45000;
 
     for (const [id, worker] of this.workers.entries()) {
       if (now - worker.lastSeen > heartbeatTimeout) {
