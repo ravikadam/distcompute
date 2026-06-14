@@ -175,6 +175,28 @@ To prevent early divergence and settle into a lower loss minimum, you can config
 
 ---
 
+## 📊 Weights & Biases (W&B) Integration
+
+DistCompute includes a custom, zero-dependency server-side W&B logger. It speaks the native W&B HTTP protocol (viewer query, upsertBucket mutation, and file_stream JSONL appender) to log loss curves, learning rates, gradient norms, active worker counts, and throughput metrics in real time.
+
+### How to Get Your W&B API Key
+1. Go to [wandb.ai](https://wandb.ai/) and sign up for a free account if you don't have one.
+2. Log in and navigate to the authorization page: **[wandb.ai/authorize](https://wandb.ai/authorize)**.
+3. Copy the alphanumeric API key displayed.
+
+### How to Enable Logging in DistCompute
+1. Open the **Admin Dashboard** (`http://localhost:3000/dashboard.html`).
+2. Locate the **Weights & Biases (W&B)** settings panel in the sidebar.
+3. Enter your **W&B API Key**.
+4. (Optional) Set the **Project Name** (defaults to `distcompute`) and **Entity/Team** (if you belong to a team space).
+5. Click **"Apply W&B Settings"** (or it will connect automatically when you start training).
+6. When training runs, a live link will be printed in the server logs and displayed on the dashboard: `Logging to run https://wandb.ai/<entity>/<project>/runs/<run_id>`.
+
+> [!NOTE]
+> W&B logging is fail-soft. If your API key is invalid or W&B servers are unreachable, the cluster will print a console warning and continue training without interruption.
+
+---
+
 ## 🐍 Running Exported GPT Models in Python
 
 After training a GPT model in the cluster, you can download the weights and run text generation locally using PyTorch and Hugging Face.
