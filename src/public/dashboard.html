@@ -620,6 +620,7 @@
         box('Per-task compute', `${(p.avgTaskComputeMs || 0).toFixed(1)} ms`, `round-trip ${(p.avgTaskRoundTripMs || 0).toFixed(1)} ms`) +
         box('Tasks completed', fmtCount(p.tasksCompleted || 0), `${(p.tasksPerSec || 0).toFixed(1)} tasks/s`) +
         box('Throughput', `${(p.flopsPerSec / 1e9 || 0).toFixed(2)} GFLOP/s`, `${fmtCount(Math.round(p.examplesPerSec || 0))} examples/s`) +
+        box('Gradient norm', (p.gradNorm || 0).toFixed(3), 'global L2 (health)') +
         box('FLOPs / task', fmtFlops(p.flopsPerTask || 0), 'forward + backward') +
         box('Work done', fmtFlops(p.flopsProcessed || 0), `${fmtCount(p.examplesProcessed || 0)} examples`) +
         box('Work remaining', hasTarget ? fmtFlops(p.flopsRemaining) : '—', hasTarget ? `${fmtCount(p.examplesRemaining)} examples` : 'no target set') +
