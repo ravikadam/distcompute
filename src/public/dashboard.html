@@ -240,6 +240,23 @@
         </div>
       </section>
 
+      <!-- Training Runs: list checkpointed runs and resume one -->
+      <section class="workers-table-card">
+        <div class="card-header" style="margin-bottom:16px;">
+          <h3 class="card-title">Training Runs</h3>
+          <span id="currentRunLabel" class="card-hint" style="color:var(--text-muted);font-size:12px;">No active run</span>
+        </div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+          Weights are checkpointed every few hundred steps. After a restart or network change, Resume picks up a run from its latest checkpoint; reconnecting workers automatically serve it.
+        </p>
+        <div class="table-container" style="max-height:260px;overflow-y:auto;">
+          <table>
+            <thead><tr><th>Run ID</th><th>Model</th><th>Step</th><th>Loss</th><th>Updated</th><th>Action</th></tr></thead>
+            <tbody id="runsBody"><tr><td colspan="6" class="empty-state">No saved runs yet.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Model Memory & Units Estimator -->
       <section class="config-card">
         <div class="card-header" style="margin-bottom:16px;">
@@ -871,11 +888,54 @@
       }).catch(() => {});
     }
 
+    // --- Training runs (checkpoint list + resume) ---
+    const runsBody = document.getElementById('runsBody');
+    function fetchRuns() {
+      fetch('/api/runs').then(r => r.json()).then(d => {
+        document.getElementById('currentRunLabel').innerText =
+          d.currentRunId ? `Active run: ${d.currentRunId}` : 'No active run';
+        const runs = d.runs || [];
+        if (!runs.length) {
+          runsBody.innerHTML = `<tr><td colspan="6" class="empty-state">No saved runs yet.</td></tr>`;
+          return;
+        }
+        runsBody.innerHTML = runs.map(r => {
+          const isCurrent = r.runId === d.currentRunId;
+          const updated = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : '—';
+          const action = d.isTraining
+            ? `<span style="color:var(--text-muted);font-size:12px;">${isCurrent ? 'running' : 'idle'}</span>`
+            : `<button class="btn-outline" data-resume="${r.runId}" style="padding:6px 12px;">Resume</button>`;
+          return `<tr>
+            <td class="worker-id-cell">${r.runId}${isCurrent ? ' <span class="ev-info">●</span>' : ''}</td>
+            <td>${r.model || '—'}</td>
+            <td>${fmtCount(r.step || 0)}</td>
+            <td>${Number.isFinite(+r.loss) ? (+r.loss).toFixed(4) : '—'}</td>
+            <td style="font-size:12px;">${updated}</td>
+            <td>${action}</td>
+          </tr>`;
+        }).join('');
+      }).catch(() => {});
+    }
+    runsBody.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-resume]');
+      if (!b) return;
+      const runId = b.getAttribute('data-resume');
+      if (!confirm(`Resume run ${runId} from its latest checkpoint?`)) return;
+      fetch('/api/training/resume', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId })
+      }).then(r => r.json()).then(d => {
+        if (d.error) alert('Resume failed: ' + d.error);
+        else { fetchStatus(); fetchRuns(); }
+      }).catch(e => alert('Resume failed: ' + e.message));
+    });
+
     // Poll status + logs periodically so progress/ETA, precision, units and the
     // event log stay fresh even between websocket pushes.
     function pollAll() {
       fetch('/api/training/status').then(r => r.json()).then(updateObservability).catch(() => {});
       fetchLogs();
+      fetchRuns();
     }
     setInterval(pollAll, 3000);
     fetchModels();

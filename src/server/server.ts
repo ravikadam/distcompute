@@ -10,6 +10,7 @@ import { EventLog } from './eventlog';
 import { PersistentConfig } from './persistentConfig';
 import { WandbLogger } from './wandb';
 import { PRESETS, transformerParamCount } from './presets';
+import { CheckpointStore } from './checkpoints';
 
 const app = express();
 const server = createServer(app);
@@ -21,8 +22,9 @@ const PORT = 3000;
 const eventLog = new EventLog();
 const persistentConfig = new PersistentConfig();
 
+const checkpoints = new CheckpointStore();
 const orchestrator = new Orchestrator(eventLog);
-const trainer = new Trainer(orchestrator);
+const trainer = new Trainer(orchestrator, checkpoints);
 
 // Apply any previously-saved configuration on boot so the operator doesn't
 // have to re-enter the dataset path / hyperparameters after a restart.
@@ -155,6 +157,37 @@ app.get('/api/presets', (req, res) => {
   res.json(PRESETS);
 });
 
+// List checkpointed runs (newest first) so the operator can resume one.
+app.get('/api/runs', (req, res) => {
+  res.json({ runs: checkpoints.listRuns(), currentRunId: trainer.runId, isTraining: trainer.isTraining });
+});
+
+// Resume a previous run from its latest checkpoint. Restores config + state +
+// weights, then continues training; reconnecting workers serve the same run.
+app.post('/api/training/resume', (req, res) => {
+  try {
+    if (trainer.isTraining) return res.status(409).json({ error: 'Training already running; stop it first.' });
+    const { runId } = req.body;
+    const ck = checkpoints.load(String(runId));
+    if (!ck) return res.status(404).json({ error: `No checkpoint found for run ${runId}` });
+
+    // Restore the run's configuration before rebuilding the model.
+    const c = ck.meta.config || {};
+    trainer.dslFilePath = c.dslFilePath || '';
+    trainer.updateConfig({
+      lr: c.lr, batchSize: c.batchSize, hiddenDim: c.hiddenDim, contextLen: c.contextLen,
+      datasetFilePath: c.datasetFilePath || undefined,
+      targetSteps: c.targetSteps, targetTokens: c.targetTokens, precision: c.precision,
+      lrSchedule: c.lrSchedule, warmupSteps: c.warmupSteps
+    });
+    persistentConfig.update({ dslFilePath: trainer.dslFilePath });
+    trainer.start(ck).catch(err => console.error('Resume error:', err));
+    res.json({ status: 'resumed', runId: ck.meta.runId, step: ck.meta.step });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Available compiled .dsl models (scans the models/ directory for manifests).
 // Used by the dashboard so the operator picks a DSL and sees its architecture.
 app.get('/api/models', (req, res) => {
@@ -208,6 +241,7 @@ app.post('/api/training/stop', (req, res) => {
 app.get('/api/training/status', (req, res) => {
   res.json({
     isTraining: trainer.isTraining,
+    runId: trainer.runId,
     step: trainer.step,
     epoch: trainer.epoch,
     loss: trainer.loss,

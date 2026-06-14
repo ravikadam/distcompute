@@ -38,6 +38,9 @@ export class Orchestrator {
   taskQueue: ComputeTask[] = [];
   activeTasks = new Map<string, ComputeTask>();
   dashboardSockets = new Set<WebSocket>();
+  // The training run currently being served. Tagged onto assigned tasks and
+  // dashboard stats so every (re)connecting worker is working the same run.
+  currentRunId = '';
   private taskCounter = 0;
   // Persistent troubleshooting log for worker lifecycle problems. Injected so
   // it can be shared with the rest of the server (and stubbed in tests).
@@ -276,6 +279,7 @@ export class Orchestrator {
       worker.ws.send(JSON.stringify({
         type: 'assign_task',
         taskId: task.id,
+        runId: this.currentRunId,
         dsl: task.dsl,
         shapes: task.shapes,
         inputs: task.inputs,
@@ -407,7 +411,8 @@ export class Orchestrator {
       type: 'stats_update',
       workers: workersList,
       queueSize: this.taskQueue.length,
-      activeCount: this.activeTasks.size
+      activeCount: this.activeTasks.size,
+      runId: this.currentRunId
     }));
   }
 }

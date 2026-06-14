@@ -564,7 +564,7 @@
           const message = JSON.parse(event.data);
           
           if (message.type === 'assign_task') {
-            log(`⚡ Task assigned: ${message.taskId}`, 'info');
+            log(`⚡ Task assigned: ${message.taskId}${message.runId ? ` (run ${message.runId})` : ''}`, 'info');
             // Switch to "Computing" immediately; setComputing keeps it steady
             // across back-to-back tasks instead of flickering each one.
             setComputing(true);
