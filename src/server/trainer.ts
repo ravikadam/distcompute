@@ -77,6 +77,7 @@ export class Trainer {
 
   // Work accounting (FLOPs) derived from the compiled DSL, so "work done /
   // remaining" is measured in actual compute, not just step counts.
+  gradNorm = 0;                      // global L2 norm of the last step's gradients
   flopsPerTask = 0;                  // forward+backward FLOPs for one task slice
   private cumulativeTasks = 0;       // total tasks dispatched across all steps
   private cumulativeExamples = 0;    // total training examples processed
@@ -343,6 +344,15 @@ export class Trainer {
           }
         }
 
+        // Global gradient L2 norm — a training-health signal (spikes = instability,
+        // collapse toward 0 = vanishing/stalled). Computed on the averaged grads.
+        let gradSq = 0;
+        for (const key of Object.keys(grads)) {
+          const g = grads[key];
+          for (let i = 0; i < g.length; i++) gradSq += g[i] * g[i];
+        }
+        this.gradNorm = Math.sqrt(gradSq);
+
         // Update weights using Adam optimizer
         this.applyAdamStep(grads);
         this.step++;
@@ -368,10 +378,13 @@ export class Trainer {
           this.wandb.log({
             step: this.step,
             loss: this.loss,
+            grad_norm: this.gradNorm,
             epoch: this.epoch,
             workers: this.orchestrator.workers.size,
             examples_per_step: currentBatchSize,
-            ...(p.targetSteps > 0 ? { progress_pct: p.percent, eta_seconds: p.etaSeconds } : {})
+            ...(p.targetSteps > 0
+              ? { progress_pct: p.percent, eta_seconds: p.etaSeconds, eta_minutes: p.etaSeconds / 60 }
+              : {})
           });
         }
 
@@ -547,6 +560,7 @@ export class Trainer {
     const base = {
       // counters
       step: this.step,
+      gradNorm: this.gradNorm,
       tasksCompleted: timing.totalCompleted,
       examplesProcessed: this.cumulativeExamples,
       flopsProcessed: this.cumulativeFlops,

@@ -44,6 +44,7 @@ All notable changes to this project, newest first.
   - ✅ **No reconnect when intentional** — a `manualStop` flag means clicking Disconnect or receiving the server's `disconnect` (kick) tears down for good; only genuine drops reconnect.
   - ✅ **Tolerant heartbeat timeout** (`orchestrator.ts`) raised 15s → 45s to avoid false drops during brief throttling. An actively computing worker already stays alive via `task_completed` updating `lastSeen`.
   - ✅ **Accurate worker stats** (`orchestrator.ts`) — a worker's `completedCount` is now **preserved across reconnects** (it was reset to 0 on every re-register, so the dashboard undercounted) and a worker is **credited for every task it finishes** even if that task was already reassigned/timed out (the count/throughput/liveness update moved outside the "task still active" gate). Fixes the dashboard COMPLETED lagging each worker's own tally and workers showing throughput with 0 completed.
+  - ✅ **Gradient-norm + remaining-time metrics** — the trainer computes the global gradient L2 norm each step and logs `grad_norm` plus `eta_seconds`/`eta_minutes` to wandb (and exposes `gradNorm` on the dashboard work card), so you can graph training health and time-remaining instead of just step counters.
 
 - **How it helps:** Workers survive tab-switches, network blips, and short sleeps — they rejoin automatically instead of silently disappearing, and the server stops dropping healthy nodes over momentary heartbeat gaps.
 
