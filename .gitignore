@@ -6,6 +6,8 @@ dist/
 # Local runtime state (may contain a wandb API key) and event logs
 config.json
 logs/
+# Saved training runs (weights + Adam snapshots; can be large)
+checkpoints/
 # Throwaway integration-test scratch scripts
 _test_*.js
 _diag*.js

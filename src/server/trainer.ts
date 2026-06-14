@@ -4,6 +4,7 @@ import { Linear } from '../compiler/modules';
 import { TensorVM } from '../public/vm';
 import { WandbLogger } from './wandb';
 import { estimateDslFlops } from './dslStats';
+import { CheckpointStore, CheckpointMeta, CheckpointBlob } from './checkpoints';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -85,6 +86,14 @@ export class Trainer {
   private gptBytes: Buffer | null = null;   // byte-level training corpus
   private gptSampleNote = '(live sampling not yet available for GPT models)';
 
+  // Run identity + checkpointing. Each training run gets a unique id; the loop
+  // saves weights + Adam state to disk every `checkpointEverySteps` so a run
+  // survives a machine restart / network change and can be resumed later.
+  runId = '';
+  runCreatedAt = '';
+  checkpointEverySteps = 20;
+  checkpoints: CheckpointStore;
+
   // Rolling average of recent step durations (ms), used to estimate ETA.
   private recentStepMs: number[] = [];
   private lastStepTimestamp = 0;
@@ -114,9 +123,48 @@ export class Trainer {
   datasetFileSize = 0;
   corpus = "hello world distributed compute cluster training simple language model on browser workers and mobile phones to train deep neural networks";
   
-  constructor(orchestrator: Orchestrator) {
+  constructor(orchestrator: Orchestrator, checkpoints?: CheckpointStore) {
     this.orchestrator = orchestrator;
+    this.checkpoints = checkpoints ?? new CheckpointStore();
     this.initWeights();
+  }
+
+  private generateRunId(): string {
+    return `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  // Persist weights + Adam state + run metadata to disk (fail-soft).
+  saveCheckpoint(): void {
+    if (!this.runId) return;
+    try {
+      const enc = (rec: Record<string, Float32Array>) => {
+        const o: Record<string, string> = {};
+        for (const [k, v] of Object.entries(rec)) o[k] = TensorVM.float32ArrayToBase64(v);
+        return o;
+      };
+      const meta: CheckpointMeta = {
+        runId: this.runId,
+        model: this.mode === 'gpt' ? path.basename(this.dslFilePath) : 'char-mlp',
+        mode: this.mode,
+        createdAt: this.runCreatedAt,
+        updatedAt: new Date().toISOString(),
+        step: this.step, epoch: this.epoch, tAdam: this.tAdam,
+        loss: this.loss, gradNorm: this.gradNorm,
+        cumulativeTasks: this.cumulativeTasks,
+        cumulativeExamples: this.cumulativeExamples,
+        cumulativeFlops: this.cumulativeFlops,
+        config: {
+          dslFilePath: this.dslFilePath, datasetFilePath: this.datasetFilePath,
+          lr: this.lr, lrSchedule: this.lrSchedule, warmupSteps: this.warmupSteps,
+          precision: this.precision, targetTokens: this.targetTokens, targetSteps: this.targetSteps,
+          batchSize: this.batchSize, hiddenDim: this.hiddenDim, contextLen: this.contextLen
+        }
+      };
+      const blob: CheckpointBlob = { weights: enc(this.weights), adamM: enc(this.adamM), adamV: enc(this.adamV) };
+      this.checkpoints.save(this.runId, meta, blob);
+    } catch (e) {
+      console.error('[Trainer] checkpoint save failed:', e);
+    }
   }
 
   // Dynamically update training parameters and reset model weights
@@ -249,8 +297,8 @@ export class Trainer {
     return { numSlices, sliceSize };
   }
 
-  // Start the distributed training loop
-  async start() {
+  // Start the distributed training loop. Pass a checkpoint to resume that run.
+  async start(resume?: { meta: CheckpointMeta; blob: CheckpointBlob }) {
     if (this.isTraining) return;
     this.isTraining = true;
 
@@ -266,19 +314,40 @@ export class Trainer {
       return;
     }
     const { dsl, shapes } = model;
-    console.log(`Distributed Training Loop Started (${this.mode} model, ${Object.keys(this.weights).length} param tensors).`);
-
-    this.tAdam = 0;
-    // Reset ETA timing for this run.
+    this.flopsPerTask = estimateDslFlops(dsl, shapes).flops;
     this.recentStepMs = [];
     this.lastStepTimestamp = 0;
 
-    // Measure the per-task compute cost from the compiled DSL so we can report
-    // work done / remaining in FLOPs.
-    this.flopsPerTask = estimateDslFlops(dsl, shapes).flops;
-    this.cumulativeTasks = 0;
-    this.cumulativeExamples = 0;
-    this.cumulativeFlops = 0;
+    if (resume) {
+      // Restore run identity, training state, and parameters from the checkpoint.
+      this.runId = resume.meta.runId;
+      this.runCreatedAt = resume.meta.createdAt;
+      this.step = resume.meta.step;
+      this.epoch = resume.meta.epoch;
+      this.tAdam = resume.meta.tAdam;
+      this.cumulativeTasks = resume.meta.cumulativeTasks || 0;
+      this.cumulativeExamples = resume.meta.cumulativeExamples || 0;
+      this.cumulativeFlops = resume.meta.cumulativeFlops || 0;
+      const restore = (target: Record<string, Float32Array>, src: Record<string, string>) => {
+        for (const [k, b64] of Object.entries(src)) {
+          if (target[k]) target[k].set(TensorVM.base64ToFloat32Array(b64));
+        }
+      };
+      restore(this.weights, resume.blob.weights);
+      restore(this.adamM, resume.blob.adamM);
+      restore(this.adamV, resume.blob.adamV);
+      console.log(`Resumed run ${this.runId} at step ${this.step} (${this.mode} model).`);
+    } else {
+      // Fresh run: new id, zeroed counters.
+      this.runId = this.generateRunId();
+      this.runCreatedAt = new Date().toISOString();
+      this.step = 0; this.epoch = 0; this.tAdam = 0;
+      this.cumulativeTasks = 0; this.cumulativeExamples = 0; this.cumulativeFlops = 0;
+      console.log(`Started run ${this.runId} (${this.mode} model, ${Object.keys(this.weights).length} param tensors).`);
+    }
+    // Tag the active run on the orchestrator so every (re)connecting worker's
+    // tasks carry it, and the dashboard can show which run is live.
+    this.orchestrator.currentRunId = this.runId;
 
     while (this.isTraining) {
       // Wait until we have enough active workers
@@ -445,6 +514,10 @@ export class Trainer {
           this.broadcastStatsToDashboards();
         }
 
+        // Checkpoint weights + Adam state periodically so the run survives a
+        // crash / restart and can be resumed.
+        if (this.step % this.checkpointEverySteps === 0) this.saveCheckpoint();
+
         // Stop once the configured training target is reached. Token target
         // takes precedence; step target is the legacy fallback.
         const hitTokenTarget = this.targetTokens > 0 && this.cumulativeExamples >= this.targetTokens;
@@ -454,6 +527,7 @@ export class Trainer {
             ? `${this.cumulativeExamples} tokens (target ${this.targetTokens})`
             : `${this.step} steps (target ${this.targetSteps})`;
           console.log(`Reached training target: ${reason}. Stopping.`);
+          this.saveCheckpoint(); // final checkpoint
           this.broadcastStatsToDashboards();
           if (this.wandb && this.wandb.active) await this.wandb.finish();
           this.isTraining = false;
