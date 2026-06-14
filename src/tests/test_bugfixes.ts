@@ -246,7 +246,38 @@ function testWandb() {
   check('wandb: inactive logger is not active', w.active === false);
 }
 
+// ---------------------------------------------------------------------------
+// WASM SIMD matmul fast path — numerically equivalent to the JS reference for
+// large 2D and batched-3D matmuls (the case that routes through WASM).
+// ---------------------------------------------------------------------------
+function testWasmMatmul() {
+  const { Tensor, matmul } = require('../public/vm.js');
+  const jsRef = (A: any, B: any, M: number, K: number, N: number) => {
+    const C = new Float32Array(M * N);
+    for (let i = 0; i < M; i++) for (let j = 0; j < N; j++) { let s = 0; for (let k = 0; k < K; k++) s += A[i * K + k] * B[k * N + j]; C[i * N + j] = s; }
+    return C;
+  };
+  const M = 128, K = 64, N = 96; // 786,432 FLOPs > threshold → WASM path
+  const a = new Tensor([M, K]); for (let i = 0; i < a.data.length; i++) a.data[i] = Math.sin(i) * 0.5;
+  const b = new Tensor([K, N]); for (let i = 0; i < b.data.length; i++) b.data[i] = Math.cos(i) * 0.5;
+  const out = new Tensor([M, N]); matmul(out, a, b);
+  let e = 0; { const r = jsRef(a.data, b.data, M, K, N); for (let i = 0; i < M * N; i++) e = Math.max(e, Math.abs(out.data[i] - r[i])); }
+  check('wasm matmul: 2D matches JS reference', e < 1e-3, `maxErr=${e.toExponential(2)}`);
+
+  const Bb = 3;
+  const a3 = new Tensor([Bb, M, K]); for (let i = 0; i < a3.data.length; i++) a3.data[i] = Math.sin(i * 1.3) * 0.4;
+  const b3 = new Tensor([Bb, K, N]); for (let i = 0; i < b3.data.length; i++) b3.data[i] = Math.cos(i * 0.7) * 0.4;
+  const o3 = new Tensor([Bb, M, N]); matmul(o3, a3, b3);
+  let e3 = 0;
+  for (let bb = 0; bb < Bb; bb++) {
+    const r = jsRef(a3.data.subarray(bb * M * K, (bb + 1) * M * K), b3.data.subarray(bb * K * N, (bb + 1) * K * N), M, K, N);
+    for (let i = 0; i < M * N; i++) e3 = Math.max(e3, Math.abs(o3.data[bb * M * N + i] - r[i]));
+  }
+  check('wasm matmul: 3D batched matches JS reference', e3 < 1e-3, `maxErr=${e3.toExponential(2)}`);
+}
+
 console.log('=== Running Bug-Fix Regression Tests ===');
+testWasmMatmul();
 testKick();
 testScheduling();
 testFp16Transport();
