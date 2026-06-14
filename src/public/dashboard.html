@@ -7,6 +7,42 @@
   <meta name="description" content="Orchestrate and monitor your distributed compute cluster and LLM training progress.">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
+  <style>
+    /* Units / memory estimator grid */
+    .units-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .unit-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .unit-label {
+      color: var(--text-muted, #8a8a9a);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .unit-value {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .unit-sub { font-size: 11px; color: var(--text-muted, #8a8a9a); margin-top: 4px; }
+    .unit-box.warn { border-color: rgba(245, 158, 11, 0.5); }
+    .unit-box.danger { border-color: rgba(239, 68, 68, 0.6); }
+    /* Event log levels */
+    .ev-info { color: #60a5fa; }
+    .ev-warn { color: #f59e0b; }
+    .ev-error { color: #ef4444; }
+    #eventLogBody td { font-size: 12px; font-family: 'Space Grotesk', monospace; }
+  </style>
 </head>
 <body>
 
@@ -55,6 +91,27 @@
         </div>
       </header>
 
+      <!-- Model selection: pick a compiled DSL model (or the built-in char-MLP).
+           Selecting a DSL shows its architecture and hides char-only fields. -->
+      <section class="config-card">
+        <h3 class="card-title" style="margin-bottom: 16px;">Model</h3>
+        <div class="config-grid">
+          <div class="form-group">
+            <label for="modelSelect">Model architecture (from DSL)</label>
+            <select id="modelSelect" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;">
+              <option value="">Built-in char-MLP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <span id="modelHint" style="font-size:13px;color:var(--text-muted);align-self:center;">Pick a DSL to train a transformer, or use the built-in char model.</span>
+          </div>
+          <div class="form-group full-width">
+            <div id="modelArch" class="units-grid"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- Configuration & Dataset Upload Panel -->
       <section class="config-card">
         <h3 class="card-title" style="margin-bottom: 20px;">Model Configuration & Dataset Upload</h3>
@@ -63,15 +120,15 @@
             <label for="paramLR">Learning Rate</label>
             <input type="number" id="paramLR" step="0.001" min="0.001" max="0.5" value="0.015">
           </div>
-          <div class="form-group">
+          <div class="form-group char-only">
             <label for="paramHiddenDim">Hidden Dimension</label>
             <input type="number" id="paramHiddenDim" step="16" min="16" max="256" value="64">
           </div>
-          <div class="form-group">
+          <div class="form-group char-only">
             <label for="paramContextLen">Context Length</label>
             <input type="number" id="paramContextLen" min="2" max="6" value="3">
           </div>
-          <div class="form-group">
+          <div class="form-group char-only">
             <label for="paramBatchSize">Batch Size</label>
             <input type="number" id="paramBatchSize" step="32" min="32" max="512" value="128">
           </div>
@@ -117,6 +174,20 @@
             <span class="card-hint" id="trainingEpoch">Epoch 0</span>
           </div>
         </div>
+        <div class="stat-card">
+          <span class="card-label">Progress &amp; ETA</span>
+          <div id="progressValue" class="card-value">No target</div>
+          <div class="card-graph-mock">
+            <span class="card-hint" id="progressHint">Set a target step count below</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="card-label">Precision &amp; Payload / Task</span>
+          <div id="precisionValue" class="card-value">FP16</div>
+          <div class="card-graph-mock">
+            <span class="card-hint" id="payloadHint">— per worker, per step</span>
+          </div>
+        </div>
       </section>
 
       <!-- LLM Output Observation Card -->
@@ -130,6 +201,96 @@
           <div id="sampledPredictionText" class="prediction-text">
             Initializing training loop to observe text convergence...
           </div>
+        </div>
+      </section>
+
+      <!-- Run Settings: precision, training target, DSL file (no weight reset) -->
+      <section class="config-card">
+        <h3 class="card-title" style="margin-bottom: 20px;">Run Settings</h3>
+        <div class="config-grid">
+          <div class="form-group">
+            <label for="setPrecision">Wire Precision</label>
+            <select id="setPrecision" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;">
+              <option value="fp16">FP16 (half payload)</option>
+              <option value="fp32">FP32 (full precision)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="setTargetSteps">Target Steps (0 = unlimited)</label>
+            <input type="number" id="setTargetSteps" min="0" step="100" value="0">
+          </div>
+          <div class="form-group full-width">
+            <label for="setDslPath">Server-Side .dsl Model File Path (optional)</label>
+            <input type="text" id="setDslPath" placeholder="e.g. /path/to/models/gpt1.dsl" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;">
+          </div>
+          <div class="form-group full-width">
+            <button type="button" id="saveSettingsBtn" class="btn-outline" style="width:100%;">Save Run Settings</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Model Memory & Units Estimator -->
+      <section class="config-card">
+        <div class="card-header" style="margin-bottom:16px;">
+          <h3 class="card-title">Model Memory &amp; Units Estimator</h3>
+          <select id="estPreset" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:#fff;font-family:inherit;font-size:13px;">
+            <option value="char">Current char model</option>
+            <option value="gpt1">GPT-1 (117M)</option>
+          </select>
+        </div>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+          Estimated for one per-task slice. Activations assume the whole compute graph is held in memory at once (the VM's current behaviour).
+        </p>
+        <div id="estimatorGrid" class="units-grid"></div>
+      </section>
+
+      <!-- Work & Throughput Forecast -->
+      <section class="config-card">
+        <h3 class="card-title" style="margin-bottom:8px;">Work &amp; Throughput Forecast</h3>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+          Work is measured in FLOPs from the compiled DSL. Per-task time is measured on every task; the forecast uses both. Set a target above to see work remaining.
+        </p>
+        <div id="workGrid" class="units-grid"></div>
+      </section>
+
+      <!-- Weights & Biases -->
+      <section class="config-card">
+        <h3 class="card-title" style="margin-bottom:16px;">Weights &amp; Biases Logging</h3>
+        <div class="config-grid">
+          <div class="form-group">
+            <label for="wandbKey">API Key</label>
+            <input type="password" id="wandbKey" placeholder="paste wandb API key">
+          </div>
+          <div class="form-group">
+            <label for="wandbProject">Project</label>
+            <input type="text" id="wandbProject" value="distcompute">
+          </div>
+          <div class="form-group">
+            <label for="wandbEntity">Entity (optional)</label>
+            <input type="text" id="wandbEntity" placeholder="auto-detect">
+          </div>
+          <div class="form-group full-width" style="display:flex;gap:12px;align-items:center;">
+            <button type="button" id="wandbConnectBtn" class="btn-outline">Connect &amp; Start Run</button>
+            <span id="wandbStatus" style="font-size:13px;color:var(--text-muted);">Not connected</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Worker Event Log (troubleshooting) -->
+      <section class="workers-table-card">
+        <div class="card-header" style="margin-bottom:16px;">
+          <h3 class="card-title">Worker Event Log</h3>
+          <span class="card-hint" id="eventLogFile" style="color:var(--text-muted);font-size:12px;"></span>
+        </div>
+        <div class="table-container" style="max-height:260px;overflow-y:auto;">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Level</th><th>Type</th><th>Worker</th><th>Detail</th></tr>
+            </thead>
+            <tbody id="eventLogBody">
+              <tr><td colspan="5" class="empty-state">No events yet.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -173,6 +334,19 @@
     const predictionDisplay = document.getElementById('sampledPredictionText');
     const workersTableBody = document.getElementById('workersTableBody');
     const workerLink = document.getElementById('workerLink');
+
+    // Kick via event delegation on the persistent <tbody>.
+    //
+    // The table body is rebuilt (innerHTML replaced) on every stats update, so
+    // per-row inline onclick handlers were being destroyed and recreated
+    // constantly. A tap landing during a rebuild hit a button that no longer
+    // existed, so "Kick" appeared to do nothing. Binding ONE listener to the
+    // tbody (which is never replaced, only its children) means the click is
+    // always captured regardless of how often the rows re-render.
+    workersTableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-kick-id]');
+      if (btn) kickWorker(btn.getAttribute('data-kick-id'));
+    });
 
     // Config Elements
     const configForm = document.getElementById('configForm');
@@ -299,7 +473,9 @@
           <td class="text-danger">${w.failedCount}</td>
           <td>${w.latency}ms</td>
           <td>
-            <button class="btn-kick" onclick="kickWorker('${w.id}')">Kick</button>
+            <!-- Handled by a single delegated listener on the tbody (see above),
+                 not a per-row inline handler, so the click survives re-renders. -->
+            <button class="btn-kick" data-kick-id="${w.id}">Kick</button>
           </td>
         `;
         workersTableBody.appendChild(tr);
@@ -398,6 +574,296 @@
           stopBtn.style.display = 'none';
         });
     });
+
+    // ===================================================================
+    // Units & observability (added with the FP16 / dashboard-units work)
+    // ===================================================================
+
+    // --- Human-friendly unit formatters ---
+    function fmtBytes(b) {
+      if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
+      if (b >= 1e6) return (b / 1e6).toFixed(1) + ' MB';
+      if (b >= 1e3) return (b / 1e3).toFixed(1) + ' KB';
+      return b + ' B';
+    }
+    function fmtCount(n) {
+      if (n >= 1e9) return (n / 1e9).toFixed(2) + ' B';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + ' M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + ' K';
+      return String(n);
+    }
+    function fmtDuration(s) {
+      if (s < 0) return '—';
+      s = Math.round(s);
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${sec}s`;
+      return `${sec}s`;
+    }
+    function fmtFlops(f) {
+      if (f < 0) return '—';
+      if (f >= 1e15) return (f / 1e15).toFixed(2) + ' PFLOP';
+      if (f >= 1e12) return (f / 1e12).toFixed(2) + ' TFLOP';
+      if (f >= 1e9) return (f / 1e9).toFixed(2) + ' GFLOP';
+      if (f >= 1e6) return (f / 1e6).toFixed(2) + ' MFLOP';
+      return Math.round(f) + ' FLOP';
+    }
+
+    // Render the work / throughput / forecast card from status.progress.
+    function renderWork(p) {
+      if (!p) return;
+      const box = (label, value, sub) =>
+        `<div class="unit-box"><div class="unit-label">${label}</div>` +
+        `<div class="unit-value">${value}</div>${sub ? `<div class="unit-sub">${sub}</div>` : ''}</div>`;
+      const hasTarget = p.targetSteps > 0;
+      document.getElementById('workGrid').innerHTML =
+        box('Per-task compute', `${(p.avgTaskComputeMs || 0).toFixed(1)} ms`, `round-trip ${(p.avgTaskRoundTripMs || 0).toFixed(1)} ms`) +
+        box('Tasks completed', fmtCount(p.tasksCompleted || 0), `${(p.tasksPerSec || 0).toFixed(1)} tasks/s`) +
+        box('Throughput', `${(p.flopsPerSec / 1e9 || 0).toFixed(2)} GFLOP/s`, `${fmtCount(Math.round(p.examplesPerSec || 0))} examples/s`) +
+        box('FLOPs / task', fmtFlops(p.flopsPerTask || 0), 'forward + backward') +
+        box('Work done', fmtFlops(p.flopsProcessed || 0), `${fmtCount(p.examplesProcessed || 0)} examples`) +
+        box('Work remaining', hasTarget ? fmtFlops(p.flopsRemaining) : '—', hasTarget ? `${fmtCount(p.examplesRemaining)} examples` : 'no target set') +
+        box('Work complete', hasTarget ? `${p.workPercent.toFixed(1)}%` : '—', hasTarget ? `step ${p.step}/${p.targetSteps}` : 'open-ended') +
+        box('Forecast time left', hasTarget ? fmtDuration(p.etaSeconds) : '—', hasTarget ? `at ${(p.avgStepMs || 0).toFixed(0)} ms/step` : '—');
+    }
+
+    // --- Model spec + memory/units estimation ---
+    // Returns parameter count, transport payload, and (held-in-graph) activation
+    // memory for ONE per-task slice. Activations are doubled to approximate the
+    // forward + backward tensors the VM allocates simultaneously.
+    function estimateTransformer(d, layers, heads, dFF, vocab, seq, batch, wireBytesPerEl) {
+      const tokenEmb = vocab * d;
+      const posEmb = seq * d;
+      const perLayer =
+        2 * d +                 // ln_1
+        (d * 3 * d + 3 * d) +   // c_attn (QKV)
+        (d * d + d) +           // c_proj
+        2 * d +                 // ln_2
+        (d * dFF + dFF) +       // mlp c_fc
+        (dFF * d + d);          // mlp c_proj
+      const params = tokenEmb + posEmb + layers * perLayer + 2 * d; // + final ln
+      const bsd = batch * seq * d;
+      const attnPerLayer = batch * heads * seq * seq; // scores tensor (elements)
+      const perLayerAct = 8 * bsd + 2 * attnPerLayer + 2 * (batch * seq * dFF);
+      const logits = batch * seq * vocab;
+      const actElems = layers * perLayerAct + logits;
+      return finalize(params, actElems, attnPerLayer, logits, batch, seq, wireBytesPerEl);
+    }
+    function estimateMLP(vocab, ctx, hidden, batch, wireBytesPerEl) {
+      const params = (ctx * vocab) * hidden + hidden + hidden * vocab + vocab;
+      const actElems = batch * (ctx * vocab + hidden + vocab) * 3; // fwd+bwd-ish
+      return finalize(params, actElems, batch * hidden, batch * vocab, batch, ctx, wireBytesPerEl);
+    }
+    function finalize(params, actElems, attnPerLayer, logits, batch, seq, wireBytesPerEl) {
+      const wire = params * wireBytesPerEl;        // weights over the wire
+      return {
+        params,
+        weightFp32: params * 4,
+        weightFp16: params * 2,
+        payloadB64: wire * (4 / 3),                 // base64 inflation
+        activation: actElems * 4 * 2,               // fp32, fwd+bwd
+        attnTensor: attnPerLayer * 4,
+        logitsTensor: logits * 4,
+        batch, seq
+      };
+    }
+
+    function currentWireBytes() {
+      return (document.getElementById('setPrecision').value === 'fp16') ? 2 : 4;
+    }
+
+    let lastConfig = null;
+    function renderEstimator() {
+      const preset = document.getElementById('estPreset').value;
+      const wbpe = currentWireBytes();
+      let m, title;
+      if (preset === 'gpt1') {
+        // Canonical GPT-1: d=768, 12 layers, 12 heads, dFF=3072, vocab=40478,
+        // context 512, per-task slice batch 32.
+        m = estimateTransformer(768, 12, 12, 3072, 40478, 512, 32, wbpe);
+        title = 'GPT-1, slice B=32, S=512';
+      } else {
+        const c = lastConfig || { contextLen: 3, hiddenDim: 64 };
+        m = estimateMLP(27, c.contextLen, c.hiddenDim, 32, wbpe);
+        title = `char MLP, slice B=32, ctx=${c.contextLen}`;
+      }
+      const workerRAM = m.weightFp32 + m.activation;   // worker decodes weights to fp32
+      const serverRAM = m.weightFp32 * 4;              // weights + Adam m,v + grads
+      const danger = workerRAM > 2e9;
+      const box = (label, value, sub, cls) =>
+        `<div class="unit-box ${cls || ''}"><div class="unit-label">${label}</div>` +
+        `<div class="unit-value">${value}</div>${sub ? `<div class="unit-sub">${sub}</div>` : ''}</div>`;
+      document.getElementById('estimatorGrid').innerHTML =
+        box('Parameters', fmtCount(m.params), title) +
+        box('Weights (FP32)', fmtBytes(m.weightFp32), 'master copy in RAM') +
+        box('Weights (FP16)', fmtBytes(m.weightFp16), 'half-precision transport') +
+        box('Payload / task', fmtBytes(m.payloadB64), `base64, ${currentWireBytes() === 2 ? 'fp16' : 'fp32'} wire`) +
+        box('Activation mem / worker', fmtBytes(m.activation), 'fwd+bwd, whole graph') +
+        box('Attention tensor / layer', fmtBytes(m.attnTensor), 'B·H·S²') +
+        box('Logits tensor', fmtBytes(m.logitsTensor), 'B·S·V') +
+        box('Est. worker RAM', fmtBytes(workerRAM), danger ? '⚠ exceeds a browser tab' : 'weights + activations', danger ? 'danger' : '') +
+        box('Est. server RAM', fmtBytes(serverRAM), 'weights + Adam + grads');
+    }
+    document.getElementById('estPreset').addEventListener('change', renderEstimator);
+    document.getElementById('setPrecision').addEventListener('change', renderEstimator);
+
+    // --- Model selection: pick DSL -> show architecture, hide char-only fields ---
+    let modelsCache = [];
+    const modelSelect = document.getElementById('modelSelect');
+    const modelArch = document.getElementById('modelArch');
+    const modelHint = document.getElementById('modelHint');
+
+    function pfmt(n) { return n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : (n / 1e3).toFixed(0) + 'K'; }
+
+    function fetchModels() {
+      fetch('/api/models').then(r => r.json()).then(d => {
+        modelsCache = d.models || [];
+        const cur = modelSelect.value;
+        modelSelect.innerHTML = '<option value="">Built-in char-MLP</option>' +
+          modelsCache.map(m => `<option value="${m.dslPath}">${m.name} — ${pfmt(m.parameterCount)} params</option>`).join('');
+        modelSelect.value = cur;
+      }).catch(() => {});
+    }
+
+    // Show/hide char-only inputs and render the selected model's architecture.
+    function applyModelMode(dslPath) {
+      const isDsl = !!dslPath;
+      document.querySelectorAll('.char-only').forEach(el => el.style.display = isDsl ? 'none' : '');
+      const model = modelsCache.find(m => m.dslPath === dslPath);
+      if (isDsl && model) {
+        modelHint.innerText = 'Transformer model — architecture is fixed by the DSL. Tune learning rate, precision, target, and dataset.';
+        const c = model.config || {};
+        const box = (l, v) => `<div class="unit-box"><div class="unit-label">${l}</div><div class="unit-value">${v}</div></div>`;
+        modelArch.innerHTML =
+          box('Parameters', pfmt(model.parameterCount)) +
+          box('Layers', c.nLayer) + box('d_model', c.dModel) + box('Heads', c.nHead) +
+          box('d_ff', c.dFF) + box('Vocab', c.vocab) + box('Context', c.context) +
+          box('Tokens / task', model.tokensPerTask);
+      } else {
+        modelHint.innerText = 'Built-in char-level MLP. Set hidden dim, context length, and batch size below.';
+        modelArch.innerHTML = '';
+      }
+    }
+
+    modelSelect.addEventListener('change', () => {
+      const dslPath = modelSelect.value;
+      fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dslFilePath: dslPath })
+      }).then(() => { applyModelMode(dslPath); fetchStatus(); });
+    });
+
+    // --- Progress / precision cards ---
+    function updateObservability(status) {
+      lastConfig = status.config;
+      const p = status.progress || {};
+      if (p.targetSteps > 0) {
+        document.getElementById('progressValue').innerText = `${p.percent.toFixed(1)}%`;
+        document.getElementById('progressHint').innerText =
+          `${p.remaining} steps left · ETA ${fmtDuration(p.etaSeconds)} · ${Math.round(p.avgStepMs)}ms/step`;
+      } else {
+        document.getElementById('progressValue').innerText = 'No target';
+        document.getElementById('progressHint').innerText =
+          status.step > 0 ? `${Math.round(p.avgStepMs || 0)}ms/step · open-ended run` : 'Set a target step count below';
+      }
+      renderWork(p);
+      // Reflect the persisted model into the picker (unless the user is choosing).
+      if (document.activeElement !== modelSelect) {
+        const dsl = (status.config && status.config.dslFilePath) || '';
+        if (modelSelect.value !== dsl) modelSelect.value = dsl;
+        applyModelMode(dsl);
+      }
+      const prec = (status.config && status.config.precision) || 'fp16';
+      document.getElementById('precisionValue').innerText = prec.toUpperCase();
+      // payload for current (char) model under the active precision
+      const c = status.config || {};
+      const est = estimateMLP(27, c.contextLen || 3, c.hiddenDim || 64, 32, prec === 'fp16' ? 2 : 4);
+      document.getElementById('payloadHint').innerText = `${fmtBytes(est.payloadB64)} weights · ${fmtCount(est.params)} params`;
+
+      // reflect persisted settings into the controls (without clobbering typing)
+      if (document.activeElement.id !== 'setPrecision') document.getElementById('setPrecision').value = prec;
+      if (document.activeElement.id !== 'setTargetSteps') document.getElementById('setTargetSteps').value = c.targetSteps || 0;
+      if (document.activeElement.id !== 'setDslPath') document.getElementById('setDslPath').value = c.dslFilePath || '';
+
+      // wandb status
+      if (status.wandb) {
+        const wEl = document.getElementById('wandbStatus');
+        if (status.wandb.active) wEl.innerHTML = `<span class="ev-info">● Logging</span> — <a href="${status.wandb.runUrl}" target="_blank" style="color:#67e8f9;">view run</a>`;
+        else if (status.wandb.lastError) wEl.innerHTML = `<span class="ev-error">● ${status.wandb.lastError}</span>`;
+        else if (status.wandb.configured) wEl.innerText = 'Key saved — click Connect to start a run';
+        else wEl.innerText = 'Not connected';
+      }
+      renderEstimator();
+    }
+
+    // --- Save run settings (no weight reset) ---
+    document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+      const btn = document.getElementById('saveSettingsBtn');
+      btn.disabled = true; btn.innerText = 'Saving...';
+      fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          precision: document.getElementById('setPrecision').value,
+          targetSteps: parseInt(document.getElementById('setTargetSteps').value) || 0,
+          dslFilePath: document.getElementById('setDslPath').value
+        })
+      }).then(r => r.json()).then(() => {
+        btn.disabled = false; btn.innerText = 'Save Run Settings';
+        fetchStatus();
+      }).catch(e => { btn.disabled = false; btn.innerText = 'Save Run Settings'; alert('Save failed: ' + e.message); });
+    });
+
+    // --- wandb connect ---
+    document.getElementById('wandbConnectBtn').addEventListener('click', () => {
+      const btn = document.getElementById('wandbConnectBtn');
+      btn.disabled = true; btn.innerText = 'Connecting...';
+      fetch('/api/wandb/connect', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: document.getElementById('wandbKey').value,
+          project: document.getElementById('wandbProject').value,
+          entity: document.getElementById('wandbEntity').value
+        })
+      }).then(r => r.json()).then(d => {
+        btn.disabled = false; btn.innerText = 'Connect & Start Run';
+        const wEl = document.getElementById('wandbStatus');
+        if (d.status === 'connected') wEl.innerHTML = `<span class="ev-info">● Connected</span> — <a href="${d.runUrl}" target="_blank" style="color:#67e8f9;">view run</a>`;
+        else wEl.innerHTML = `<span class="ev-error">● ${d.error || 'Failed'}</span>`;
+      }).catch(e => { btn.disabled = false; btn.innerText = 'Connect & Start Run'; alert('wandb connect failed: ' + e.message); });
+    });
+
+    // --- Worker event log ---
+    function fetchLogs() {
+      fetch('/api/logs?limit=40').then(r => r.json()).then(data => {
+        document.getElementById('eventLogFile').innerText = data.file || '';
+        const body = document.getElementById('eventLogBody');
+        if (!data.events || data.events.length === 0) {
+          body.innerHTML = `<tr><td colspan="5" class="empty-state">No events yet.</td></tr>`;
+          return;
+        }
+        body.innerHTML = data.events.map(e => {
+          const t = new Date(e.ts).toLocaleTimeString();
+          return `<tr>
+            <td>${t}</td>
+            <td class="ev-${e.level}">${e.level.toUpperCase()}</td>
+            <td>${e.type}</td>
+            <td>${e.workerId || '—'}</td>
+            <td>${e.message}</td>
+          </tr>`;
+        }).join('');
+      }).catch(() => {});
+    }
+
+    // Poll status + logs periodically so progress/ETA, precision, units and the
+    // event log stay fresh even between websocket pushes.
+    function pollAll() {
+      fetch('/api/training/status').then(r => r.json()).then(updateObservability).catch(() => {});
+      fetchLogs();
+    }
+    setInterval(pollAll, 3000);
+    fetchModels();
+    renderEstimator();
+    setTimeout(pollAll, 600);
 
     // Start
     connect();

@@ -3,3 +3,15 @@ dist/
 .DS_Store
 *.log
 .system_generated/
+# Local runtime state (may contain a wandb API key) and event logs
+config.json
+logs/
+# Throwaway integration-test scratch scripts
+_test_*.js
+_diag*.js
+_*_result.txt
+
+# Local training datasets
+data/
+# PR scratch (not part of the repo)
+PULL_REQUEST.md

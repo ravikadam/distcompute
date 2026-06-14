@@ -128,7 +128,9 @@ The compiled assembly language uses a simple text format. Lines beginning with `
 
 ### Prerequisites
 * **Node.js**: Version 18.0 or higher
-* **npm**: Version 9.0 or higher
+* **npm**: Version 9.0 or higher (bundled with Node.js — installing Node.js installs npm automatically)
+
+> **`zsh: command not found: npm`?** This means Node.js is not installed or is not on your `PATH`. Install Node.js (which includes npm) from [nodejs.org](https://nodejs.org/) or via a version manager such as [nvm](https://github.com/nvm-sh/nvm), then restart your terminal and verify with `node -v` and `npm -v`.
 
 ### 1. Server Setup
 Clone the repository and install dependencies:
@@ -143,6 +145,8 @@ Compile the TypeScript files and copy static frontend assets to the build folder
 ```bash
 npm run build
 ```
+
+> **`sh: tsc: command not found`?** TypeScript is installed locally as a project dev dependency, not globally, so the bare `tsc` command is not on your `PATH`. Always run the build through npm (`npm run build`) or invoke the local binary with `npx tsc`. Run `npm install` first so the local `tsc` exists in `node_modules/.bin`. (Alternatively, install it globally with `npm install -g typescript`.)
 
 ### 3. Run Math and VM Tests
 Verify the mathematical accuracy of the Tensor VM operations:

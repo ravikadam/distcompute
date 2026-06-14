@@ -6,7 +6,9 @@ self.onmessage = function (e) {
 
   if (payload.type === 'execute_task') {
     const { taskId, dsl, shapes, inputs } = payload;
-    
+    // Precision the server used for fp16-encoded inputs and expects for outputs.
+    const precision = payload.precision || 'fp32';
+
     try {
       const vm = new self.TensorVM();
 
@@ -15,12 +17,13 @@ self.onmessage = function (e) {
         vm.tensors[name] = new self.Tensor(shape);
       }
 
-      // 2. Load input values
+      // 2. Load input values, decoding each by its own dtype (fp16 weights/X,
+      //    fp32 integer targets). Compute below always runs in FP32.
       for (const [name, input] of Object.entries(inputs)) {
         if (!vm.tensors[name]) {
           throw new Error(`Input tensor "${name}" was not allocated in shapes dictionary`);
         }
-        const flatData = self.TensorVM.base64ToFloat32Array(input.data);
+        const flatData = self.TensorVM.decodeBase64(input.data, input.dtype || 'fp32');
         vm.tensors[name].data.set(flatData);
       }
 
@@ -49,9 +52,12 @@ self.onmessage = function (e) {
           const t = vm.tensors[name];
           // Ensure we copy the data from any offset
           const contiguousTensor = t.contiguous();
+          // Encode gradients/loss back in the requested precision (fp16 halves
+          // the return payload too); tag the dtype so the server decodes right.
           outputs[name] = {
             shape: t.shape,
-            data: self.TensorVM.float32ArrayToBase64(contiguousTensor.data)
+            data: self.TensorVM.encodeBase64(contiguousTensor.data, precision),
+            dtype: precision
           };
         }
       }

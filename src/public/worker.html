@@ -185,6 +185,11 @@
       font-size: 24px;
       font-weight: 700;
       color: #fff;
+      /* Live values (speed/latency) update many times per second. Tabular
+         (fixed-width) figures keep every digit the same width so the numbers
+         don't reflow and make the cards visibly jitter / "dance" on mobile. */
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
     }
 
     .stat-value.success { color: var(--success); }
@@ -395,6 +400,29 @@
     let currentThroughput = 0;
     let latencyHistory = [];
 
+    // Debounced "computing" indicator.
+    //
+    // When training, tasks complete every few milliseconds, so flipping the
+    // status between "Computing" and "Idle" on every single task made the
+    // status dot (which pulses/scales) and label flicker rapidly — the UI
+    // appeared to "dance". We switch to Computing instantly, but only fall
+    // back to Idle after a short quiet period with no new task, so the
+    // indicator stays steady for the duration of a training run.
+    let idleRevertTimer = null;
+    function setComputing(active) {
+      if (active) {
+        if (idleRevertTimer) { clearTimeout(idleRevertTimer); idleRevertTimer = null; }
+        if (!isComputing) { isComputing = true; updateStatus(); }
+      } else {
+        if (idleRevertTimer) clearTimeout(idleRevertTimer);
+        idleRevertTimer = setTimeout(() => {
+          isComputing = false;
+          updateStatus();
+          idleRevertTimer = null;
+        }, 600);
+      }
+    }
+
     // Log to custom panel
     function log(message, type = 'info') {
       const line = document.createElement('div');
@@ -428,9 +456,9 @@
         const data = e.data;
         
         if (data.type === 'task_completed') {
-          isComputing = false;
-          updateStatus();
-          
+          // Debounced revert to idle so rapid tasks don't flicker the status.
+          setComputing(false);
+
           completedTasks++;
           completedDisplay.innerText = completedTasks;
           
@@ -438,22 +466,26 @@
           throughputDisplay.innerText = `${speedK} kE/s`;
           latencyDisplay.innerText = `${Math.round(data.durationMs)}ms`;
 
-          log(`✓ Task ${data.taskId.substring(0, 12)}... completed in ${Math.round(data.durationMs)}ms`, 'success');
+          log(`✓ Task ${data.taskId} completed in ${Math.round(data.durationMs)}ms`, 'success');
 
           // Send gradients back
           if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
               type: 'task_completed',
               taskId: data.taskId,
-              outputs: data.outputs
+              outputs: data.outputs,
+              // Forward measured compute time so the server can track per-task
+              // timing and forecast remaining work.
+              durationMs: data.durationMs,
+              throughput: data.throughput
             }));
           }
         } 
         
         else if (data.type === 'task_failed') {
-          isComputing = false;
-          updateStatus();
-          
+          // Debounced revert to idle (mirrors the success path) to avoid flicker.
+          setComputing(false);
+
           failedTasks++;
           failedDisplay.innerText = failedTasks;
           
@@ -522,9 +554,10 @@
           const message = JSON.parse(event.data);
           
           if (message.type === 'assign_task') {
-            log(`⚡ Task assigned: ${message.taskId.substring(0, 12)}...`, 'info');
-            isComputing = true;
-            updateStatus();
+            log(`⚡ Task assigned: ${message.taskId}`, 'info');
+            // Switch to "Computing" immediately; setComputing keeps it steady
+            // across back-to-back tasks instead of flickering each one.
+            setComputing(true);
 
             // Delegate computation to background worker thread
             computeWorker.postMessage({
@@ -532,7 +565,8 @@
               taskId: message.taskId,
               dsl: message.dsl,
               shapes: message.shapes,
-              inputs: message.inputs
+              inputs: message.inputs,
+              precision: message.precision || 'fp32'
             });
           } 
           

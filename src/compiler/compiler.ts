@@ -132,6 +132,24 @@ export class Compiler {
     return out;
   }
 
+  // Row-gather embedding lookup. table: [V, d], ids: [...] integer indices.
+  // Output shape is ids.shape with the embedding dim appended.
+  embedding(table: TensorNode, ids: TensorNode): TensorNode {
+    const d = table.shape[table.shape.length - 1];
+    const out = this.createTempNode([...ids.shape, d]);
+    out.requiresGrad = table.requiresGrad;
+    out.creatorOp = { op: 'embedding', inputs: [table, ids] };
+    return out;
+  }
+
+  // LayerNorm over the last dimension. gamma/beta: [d].
+  layernorm(x: TensorNode, gamma: TensorNode, beta: TensorNode): TensorNode {
+    const out = this.createTempNode(x.shape);
+    out.requiresGrad = x.requiresGrad || gamma.requiresGrad || beta.requiresGrad;
+    out.creatorOp = { op: 'layernorm', inputs: [x, gamma, beta] };
+    return out;
+  }
+
   transpose(a: TensorNode, dim0 = -2, dim1 = -1): TensorNode {
     const ndim = a.shape.length;
     let d0 = dim0 < 0 ? dim0 + ndim : dim0;
@@ -196,6 +214,10 @@ export class Compiler {
         forwardInstructions.push(`gelu ${node.name}, ${inputs[0]}`);
       } else if (op === 'softmax') {
         forwardInstructions.push(`softmax ${node.name}, ${inputs[0]}`);
+      } else if (op === 'embedding') {
+        forwardInstructions.push(`embedding ${node.name}, ${inputs[0]}, ${inputs[1]}`);
+      } else if (op === 'layernorm') {
+        forwardInstructions.push(`layernorm ${node.name}, ${inputs[0]}, ${inputs[1]}, ${inputs[2]}`);
       } else if (op === 'transpose') {
         forwardInstructions.push(`transpose ${node.name}, ${inputs[0]}, ${node.creatorOp.args![0]}, ${node.creatorOp.args![1]}`);
       } else if (op === 'reshape') {
@@ -233,10 +255,18 @@ export class Compiler {
       if (op === 'matmul') {
         const A = inputs[0];
         const B = inputs[1];
+        // Transposing the LAST TWO dims works for both 2D and 3D (batched)
+        // matmul — the previous code assumed 2D and broke inside attention.
+        const swapLast2 = (s: number[]) => {
+          const r = [...s];
+          const n = r.length;
+          [r[n - 2], r[n - 1]] = [r[n - 1], r[n - 2]];
+          return r;
+        };
 
         // dA = dC @ B^T
         if (A.requiresGrad) {
-          const BT = this.createTempNode([B.shape[1], B.shape[0]]);
+          const BT = this.createTempNode(swapLast2(B.shape));
           const dA = this.createTempNode(A.shape);
           backwardInstructions.push(`transpose ${BT.name}, ${B.name}`);
           backwardInstructions.push(`matmul ${dA.name}, ${node.grad.name}, ${BT.name}`);
@@ -245,7 +275,7 @@ export class Compiler {
 
         // dB = A^T @ dC
         if (B.requiresGrad) {
-          const AT = this.createTempNode([A.shape[1], A.shape[0]]);
+          const AT = this.createTempNode(swapLast2(A.shape));
           const dB = this.createTempNode(B.shape);
           backwardInstructions.push(`transpose ${AT.name}, ${A.name}`);
           backwardInstructions.push(`matmul ${dB.name}, ${AT.name}, ${node.grad.name}`);
@@ -335,6 +365,29 @@ export class Compiler {
           backwardInstructions.push(`softmax_grad ${dA.name}, ${node.grad.name}, ${node.name}`);
           emitAccumulateGrad(this, A, dA, backwardInstructions);
         }
+      } else if (op === 'embedding') {
+        // Only the table receives a gradient (ids are integer indices).
+        const table = inputs[0];
+        const ids = inputs[1];
+        if (table.requiresGrad) {
+          const dTable = this.createTempNode(table.shape);
+          backwardInstructions.push(`embedding_grad ${dTable.name}, ${node.grad.name}, ${ids.name}`);
+          emitAccumulateGrad(this, table, dTable, backwardInstructions);
+        }
+      } else if (op === 'layernorm') {
+        // Fused backward emits dx, dgamma, dbeta in one instruction.
+        const x = inputs[0];
+        const gamma = inputs[1];
+        const beta = inputs[2];
+        const dX = this.createTempNode(x.shape);
+        const dGamma = this.createTempNode(gamma.shape);
+        const dBeta = this.createTempNode(beta.shape);
+        backwardInstructions.push(
+          `layernorm_grad ${dX.name}, ${dGamma.name}, ${dBeta.name}, ${node.grad.name}, ${x.name}, ${gamma.name}`
+        );
+        if (x.requiresGrad) emitAccumulateGrad(this, x, dX, backwardInstructions);
+        if (gamma.requiresGrad) emitAccumulateGrad(this, gamma, dGamma, backwardInstructions);
+        if (beta.requiresGrad) emitAccumulateGrad(this, beta, dBeta, backwardInstructions);
       } else if (op === 'transpose') {
         const A = inputs[0];
         const dim0 = node.creatorOp.args![0];
