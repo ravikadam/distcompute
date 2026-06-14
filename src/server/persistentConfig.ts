@@ -33,6 +33,10 @@ export interface TrainingConfig {
   targetTokens: number;
   /** Wire precision for weights/gradients: 'fp16' (default) or 'fp32'. */
   precision: 'fp16' | 'fp32';
+  /** LR schedule: 'warmup_cosine' (default) or 'constant'. */
+  lrSchedule: 'warmup_cosine' | 'constant';
+  /** Linear warmup length in steps (for warmup_cosine). */
+  warmupSteps: number;
   /** Weights & Biases credentials (optional). */
   wandbApiKey: string;
   wandbProject: string;
@@ -49,6 +53,8 @@ export const DEFAULT_CONFIG: TrainingConfig = {
   targetSteps: 0,
   targetTokens: 0,
   precision: 'fp16',
+  lrSchedule: 'warmup_cosine',
+  warmupSteps: 200,
   wandbApiKey: '',
   wandbProject: 'distcompute',
   wandbEntity: ''

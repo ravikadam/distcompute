@@ -12,7 +12,7 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 4 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0)
+- **Versions shipped:** 5 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0)
 - **Sessions:** 2026-06-14
 - **First change:** 2026-06-14 ~10:30 UTC
 - **Latest change:** 2026-06-14 ~15:23 UTC
@@ -29,6 +29,26 @@ All notable changes to this project, newest first.
 ## [Unreleased]
 
 *(work in flight — see commits for incremental status)*
+
+---
+
+## v1.4.0 — Cosine LR schedule + straggler deadline [✨ New Feature + ⚡ Enhancement]
+
+**Started:** 2026-06-14 ~15:55 UTC
+**Shipped:** 2026-06-14 ~16:15 UTC
+**Duration:** ~20 min
+
+- **Drove this:** Two of the four agreed performance levers. (1) Training kept plateauing around ~2.9 loss because a *flat* learning rate can't both make fast early progress and settle into a low minimum — the model was optimizer-limited, not data-limited. (2) Each step was a hard `Promise.all` barrier, so one slow/backgrounded worker paced the entire cluster. (The other two levers — a WASM SIMD matmul and binary-frame transport — are larger dedicated efforts and are deliberately *not* in this release.)
+
+- **What we did:**
+  - ✅ **Warmup + cosine LR schedule** (`trainer.ts`) — `effectiveLr()` ramps the LR linearly from ~0 to the configured `lr` over `warmupSteps` (default 200), then cosine-anneals to `minLrFrac × lr` (10%) across the run's step/token horizon. Default `lrSchedule = 'warmup_cosine'`; `'constant'` keeps the old behaviour. The applied LR is logged to wandb (`lr`) and shown on the dashboard work card, and there are Run-Settings controls for schedule + warmup steps. (Verified curve: 5e-6 → 1e-3 peak → 1e-4 floor.)
+  - ✅ **Per-step straggler deadline** (`trainer.ts`) — the step no longer blocks on the slowest worker. It collects whatever slices return within an adaptive deadline (≈1.5× recent round-trip), then averages the gradients/loss over the slices that actually completed (a smaller batch that step), updating accounting on the effective count. A single slow or backgrounded worker no longer paces everyone.
+
+- **How it helps:** The LR schedule is the direct fix for the loss plateau — fast mid-training progress, then a decaying tail that reaches a lower minimum. The straggler deadline keeps step time bounded regardless of one slow node, which matters most with heterogeneous workers.
+
+- **Known limits:** Dropped-straggler tasks still run to completion on their worker (freeing it for the next step) or hit the orchestrator's 40s task timeout. The two remaining perf levers — **WASM SIMD matmul** (the big worker-compute win) and **binary-frame transport** — are still open.
+
+- **Roadmap status:** Cosine LR + straggler deadline → Done. Open: WASM SIMD matmul, binary-frame transport, GPT live sampling, multi-threaded server serialization.
 
 ---
 
