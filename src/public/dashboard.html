@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Distributed Compute LLM Grid</title>
+  <meta name="description" content="Orchestrate and monitor your distributed compute cluster and LLM training progress.">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+  <div class="dashboard-wrapper">
+    <!-- Sidebar / Navigation -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon"></div>
+        <div>
+          <h2>DistCompute</h2>
+          <span>Central Server Orchestrator</span>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="#" class="active">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path></svg>
+          Overview Control
+        </a>
+        <a href="/worker.html" target="_blank">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Open Worker Node
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <div class="status-dot pulsing"></div>
+          <span>Orchestrator Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <header class="main-header">
+        <div>
+          <h1>Cluster Management Console</h1>
+          <p>Training a 7,000 parameter Character-level Neural Net via Distributed Web Workers</p>
+        </div>
+        <div class="header-actions">
+          <button id="startTrainBtn" class="btn-primary">Start Training</button>
+          <button id="stopTrainBtn" class="btn-danger" style="display: none;">Stop Training</button>
+          <a href="/api/model/weights" id="downloadWeightsBtn" class="btn-outline">Download Weights</a>
+        </div>
+      </header>
+
+      <!-- Configuration & Dataset Upload Panel -->
+      <section class="config-card">
+        <h3 class="card-title" style="margin-bottom: 20px;">Model Configuration & Dataset Upload</h3>
+        <form id="configForm" class="config-grid">
+          <div class="form-group">
+            <label for="paramLR">Learning Rate</label>
+            <input type="number" id="paramLR" step="0.001" min="0.001" max="0.5" value="0.015">
+          </div>
+          <div class="form-group">
+            <label for="paramHiddenDim">Hidden Dimension</label>
+            <input type="number" id="paramHiddenDim" step="16" min="16" max="256" value="64">
+          </div>
+          <div class="form-group">
+            <label for="paramContextLen">Context Length</label>
+            <input type="number" id="paramContextLen" min="2" max="6" value="3">
+          </div>
+          <div class="form-group">
+            <label for="paramBatchSize">Batch Size</label>
+            <input type="number" id="paramBatchSize" step="32" min="32" max="512" value="128">
+          </div>
+          <div class="form-group full-width">
+            <label>Dataset Corpus (Upload text file or paste text)</label>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+              <input type="file" id="datasetFile" accept=".txt" style="display: none;">
+              <button type="button" class="btn-outline" onclick="document.getElementById('datasetFile').click()">Choose .txt File</button>
+              <span id="fileNameLabel" style="font-size: 13px; color: var(--text-muted);">No file chosen</span>
+            </div>
+            <textarea id="datasetText" placeholder="Paste custom training text corpus here... (or choose a .txt file)"></textarea>
+          </div>
+          <div class="form-group full-width" style="margin-top: 10px;">
+            <label for="paramDatasetFilePath">OR Server-Side Dataset File Path (For large files > 1GB)</label>
+            <input type="text" id="paramDatasetFilePath" placeholder="e.g. /Users/username/data/wikipedia.txt" style="background-color: rgba(0, 0, 0, 0.35); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: #fff; font-family: inherit; font-size: 14px; outline: none; transition: all 0.3s;">
+          </div>
+          <div class="form-group full-width" style="margin-top: 10px;">
+            <button type="submit" id="saveConfigBtn" class="btn-primary" style="width: 100%;">Apply Parameters & Reset Weights</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Stats Grid -->
+      <section class="stats-row">
+        <div class="stat-card">
+          <span class="card-label">Model Training Loss</span>
+          <div id="lossValue" class="card-value">-</div>
+          <div class="card-graph-mock loss-trend">
+            <span class="card-hint">Lower is better</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="card-label">Active Workers Connected</span>
+          <div id="workersCount" class="card-value">0</div>
+          <div class="card-graph-mock">
+            <span class="card-hint" id="activeTasksCount">Queue: 0 tasks</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="card-label">Training Iterations</span>
+          <div id="trainingStep" class="card-value">Step 0</div>
+          <div class="card-graph-mock">
+            <span class="card-hint" id="trainingEpoch">Epoch 0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- LLM Output Observation Card -->
+      <section class="prediction-card">
+        <div class="card-header">
+          <h3 class="card-title">Live LLM Generation Observability</h3>
+          <span class="badge">Weights & Biases Mock Sync</span>
+        </div>
+        <div class="prediction-output-box">
+          <div class="prompt-marker">&gt; Prompt: "hel" (character auto-generation loop)</div>
+          <div id="sampledPredictionText" class="prediction-text">
+            Initializing training loop to observe text convergence...
+          </div>
+        </div>
+      </section>
+
+      <!-- Workers List Table -->
+      <section class="workers-table-card">
+        <h3 class="card-title" style="margin-bottom: 20px;">Active Compute Node Registry</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Worker ID</th>
+                <th>Device Specifications</th>
+                <th>Status</th>
+                <th>Throughput</th>
+                <th>Completed</th>
+                <th>Failed</th>
+                <th>Latency</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="workersTableBody">
+              <tr>
+                <td colspan="8" class="empty-state">No workers connected. Open a worker node tab to begin.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Elements
+    const startBtn = document.getElementById('startTrainBtn');
+    const stopBtn = document.getElementById('stopTrainBtn');
+    const lossDisplay = document.getElementById('lossValue');
+    const workersDisplay = document.getElementById('workersCount');
+    const activeTasksDisplay = document.getElementById('activeTasksCount');
+    const stepDisplay = document.getElementById('trainingStep');
+    const epochDisplay = document.getElementById('trainingEpoch');
+    const predictionDisplay = document.getElementById('sampledPredictionText');
+    const workersTableBody = document.getElementById('workersTableBody');
+
+    // Config Elements
+    const configForm = document.getElementById('configForm');
+    const paramLR = document.getElementById('paramLR');
+    const paramHiddenDim = document.getElementById('paramHiddenDim');
+    const paramContextLen = document.getElementById('paramContextLen');
+    const paramBatchSize = document.getElementById('paramBatchSize');
+    const datasetFile = document.getElementById('datasetFile');
+    const fileNameLabel = document.getElementById('fileNameLabel');
+    const datasetText = document.getElementById('datasetText');
+    const paramDatasetFilePath = document.getElementById('paramDatasetFilePath');
+
+    let ws = null;
+    let customCorpus = null;
+
+    // Connect to dashboard websocket
+    function connect() {
+      const url = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/dashboard';
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        console.log('Dashboard WS connected.');
+        fetchStatus();
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'stats_update') {
+            updateWorkersTable(message.workers);
+            workersDisplay.innerText = message.workers.length;
+            activeTasksDisplay.innerText = `Active Tasks: ${message.activeCount} | Queue: ${message.queueSize}`;
+          } 
+          
+          else if (message.type === 'training_update') {
+            lossDisplay.innerText = message.loss.toFixed(4);
+            stepDisplay.innerText = `Step ${message.step}`;
+            epochDisplay.innerText = `Epoch ${message.epoch}`;
+            predictionDisplay.innerText = `... ${message.prediction} ...`;
+          }
+        } catch (err) {
+          console.error('Failed parsing dashboard message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.warn('Dashboard WS disconnected. Reconnecting...');
+        setTimeout(connect, 2000);
+      };
+    }
+
+    function fetchStatus() {
+      fetch('/api/training/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.isTraining) {
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-block';
+          } else {
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+          }
+          if (data.step > 0) {
+            lossDisplay.innerText = data.loss.toFixed(4);
+            stepDisplay.innerText = `Step ${data.step}`;
+            epochDisplay.innerText = `Epoch ${data.epoch}`;
+            predictionDisplay.innerText = `... ${data.prediction} ...`;
+          }
+          if (data.config) {
+            paramLR.value = data.config.lr;
+            paramHiddenDim.value = data.config.hiddenDim;
+            paramContextLen.value = data.config.contextLen;
+            paramBatchSize.value = data.config.batchSize;
+            if (!customCorpus && !datasetText.value) {
+              datasetText.placeholder = `Current corpus has ${data.config.corpusLength.toLocaleString()} characters. Paste text or upload file to change it.`;
+            }
+            if (data.config.datasetFilePath) {
+              paramDatasetFilePath.value = data.config.datasetFilePath;
+            } else {
+              paramDatasetFilePath.value = '';
+            }
+          }
+        });
+    }
+
+    function updateWorkersTable(workers) {
+      if (workers.length === 0) {
+        workersTableBody.innerHTML = `<tr><td colspan="8" class="empty-state">No workers connected. Open a worker node tab to begin.</td></tr>`;
+        return;
+      }
+
+      workersTableBody.innerHTML = '';
+      workers.forEach(w => {
+        const tr = document.createElement('tr');
+        
+        // Spec details
+        const platform = w.deviceInfo.platform || 'Mobile Device';
+        const browser = w.deviceInfo.browser || 'Unknown';
+        const cores = w.deviceInfo.cores || 4;
+
+        // Status badge class
+        let badgeClass = 'badge-idle';
+        if (w.status === 'busy') badgeClass = 'badge-busy';
+
+        // Speed format
+        const speedK = Math.round(w.throughput / 1000);
+
+        tr.innerHTML = `
+          <td class="worker-id-cell">${w.id}</td>
+          <td>
+            <div class="device-spec">
+              <strong>${platform}</strong>
+              <span>${browser} • ${cores} CPU cores</span>
+            </div>
+          </td>
+          <td><span class="status-badge ${badgeClass}">${w.status}</span></td>
+          <td><strong class="text-success">${speedK} kE/s</strong></td>
+          <td>${w.completedCount}</td>
+          <td class="text-danger">${w.failedCount}</td>
+          <td>${w.latency}ms</td>
+          <td>
+            <button class="btn-kick" onclick="kickWorker('${w.id}')">Kick</button>
+          </td>
+        `;
+        workersTableBody.appendChild(tr);
+      });
+    }
+
+    function kickWorker(workerId) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'kick', workerId }));
+      }
+    }
+
+    // Handle dataset text file loading
+    datasetFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const maxBrowserFileSize = 20 * 1024 * 1024; // 20 MB limit
+      if (file.size > maxBrowserFileSize) {
+        alert(`File is too large to load in-browser (${(file.size / (1024 * 1024)).toFixed(1)} MB).\n\nTo prevent browser tab crashes, files larger than 20MB must be placed directly on the server. Please enter the file path on the server in the field below.`);
+        datasetFile.value = '';
+        fileNameLabel.innerText = 'No file chosen';
+        return;
+      }
+
+      fileNameLabel.innerText = file.name;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        customCorpus = evt.target.result;
+        datasetText.value = '';
+        datasetText.placeholder = `Loaded: ${file.name} (${customCorpus.length.toLocaleString()} characters). Ready to apply!`;
+      };
+      reader.readAsText(file);
+    });
+
+    // Reset custom corpus if they paste/type in text area manually
+    datasetText.addEventListener('input', () => {
+      if (datasetText.value.trim().length > 0) {
+        customCorpus = null;
+        fileNameLabel.innerText = 'Pasted manual text';
+      }
+    });
+
+    // Form submission for parameters re-configuration
+    configForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveConfigBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Applying & Resetting Weights...';
+
+      const payload = {
+        lr: parseFloat(paramLR.value),
+        hiddenDim: parseInt(paramHiddenDim.value),
+        contextLen: parseInt(paramContextLen.value),
+        batchSize: parseInt(paramBatchSize.value),
+        corpus: customCorpus || datasetText.value || undefined,
+        datasetFilePath: paramDatasetFilePath.value || undefined
+      };
+
+      fetch('/api/training/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Apply Parameters & Reset Weights';
+        if (data.error) {
+          alert('Configuration error: ' + data.error);
+        } else {
+          alert('Configuration successfully applied. Parameters updated and weights re-initialized.');
+          fetchStatus();
+        }
+      })
+      .catch(err => {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Apply Parameters & Reset Weights';
+        alert('Failed to configure: ' + err.message);
+      });
+    });
+
+    // Button actions
+    startBtn.addEventListener('click', () => {
+      fetch('/api/training/start', { method: 'POST' })
+        .then(() => {
+          startBtn.style.display = 'none';
+          stopBtn.style.display = 'inline-block';
+        });
+    });
+
+    stopBtn.addEventListener('click', () => {
+      fetch('/api/training/stop', { method: 'POST' })
+        .then(() => {
+          startBtn.style.display = 'inline-block';
+          stopBtn.style.display = 'none';
+        });
+    });
+
+    // Start
+    connect();
+  </script>
+</body>
+</html>

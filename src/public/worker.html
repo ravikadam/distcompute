@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobile Compute Worker Node - Distributed Compute Cluster</title>
+  <meta name="description" content="Join the distributed compute cluster to train neural networks directly from your browser.">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090e;
+      --panel: rgba(18, 18, 29, 0.6);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #8b5cf6;
+      --primary-glow: rgba(139, 92, 246, 0.4);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.4);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.4);
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 550px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Node Status Glow Card */
+    .status-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: var(--danger);
+      box-shadow: 0 0 16px var(--danger-glow);
+      transition: all 0.5s ease;
+    }
+
+    .status-dot.connected {
+      background-color: var(--success);
+      box-shadow: 0 0 16px var(--success-glow);
+    }
+
+    .status-dot.computing {
+      background-color: var(--primary);
+      box-shadow: 0 0 16px var(--primary-glow);
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-text {
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .worker-id {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.6; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+
+    .stat-box:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-value.success { color: var(--success); }
+    .stat-value.danger { color: var(--danger); }
+
+    /* Configuration Panel */
+    .config-panel {
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    button:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+    }
+
+    button.disconnect {
+      background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    button.disconnect:hover {
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+    }
+
+    /* Live Feed / Terminal */
+    .terminal {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 11px;
+      height: 150px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #a7f3d0;
+      text-align: left;
+    }
+
+    .terminal::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .terminal::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .log-msg {
+      word-break: break-all;
+    }
+
+    .log-error { color: var(--danger); }
+    .log-success { color: var(--success); }
+    .log-info { color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1 id="title">DistCompute Worker</h1>
+      <p>Mobile & Browser Decentralized AI Compute Engine</p>
+    </header>
+
+    <div class="status-card">
+      <div class="status-info">
+        <div id="statusDot" class="status-dot"></div>
+        <div>
+          <div id="statusText" class="status-text">Disconnected</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Ready to accept neural training batches</div>
+        </div>
+      </div>
+      <div id="workerIdDisplay" class="worker-id">ID: generating...</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Tasks Completed</div>
+        <div id="completedCount" class="stat-value success">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Gradients Failed</div>
+        <div id="failedCount" class="stat-value danger">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Compute Speed</div>
+        <div id="throughputVal" class="stat-value">0 E/s</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Avg. Latency</div>
+        <div id="latencyVal" class="stat-value">0ms</div>
+      </div>
+    </div>
+
+    <div class="config-panel">
+      <div class="input-group">
+        <label for="serverUrl">Orchestrator WebSocket Endpoint</label>
+        <div class="input-row">
+          <input type="text" id="serverUrl" placeholder="ws://localhost:3000/worker">
+          <button id="connectBtn">Connect Node</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="terminal" id="terminalLog">
+      <div class="log-line info">
+        <span class="log-time">[System]</span>
+        <span class="log-msg">Worker initialized. Ready to join the compute grid.</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Generate static worker ID
+    const workerId = 'node-' + Math.random().toString(36).substring(2, 8) + '-' + Math.floor(Math.random() * 900 + 100);
+    document.getElementById('workerIdDisplay').innerText = `ID: ${workerId}`;
+
+    // Elements
+    const connectBtn = document.getElementById('connectBtn');
+    const serverUrlInput = document.getElementById('serverUrl');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const completedDisplay = document.getElementById('completedCount');
+    const failedDisplay = document.getElementById('failedCount');
+    const throughputDisplay = document.getElementById('throughputVal');
+    const latencyDisplay = document.getElementById('latencyVal');
+    const terminalLog = document.getElementById('terminalLog');
+
+    // Default WebSocket address
+    const defaultWs = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/worker';
+    serverUrlInput.placeholder = defaultWs;
+    serverUrlInput.value = defaultWs;
+
+    let socket = null;
+    let computeWorker = null;
+    let heartInterval = null;
+    let isConnected = false;
+    let isComputing = false;
+
+    let completedTasks = 0;
+    let failedTasks = 0;
+    let currentThroughput = 0;
+    let latencyHistory = [];
+
+    // Log to custom panel
+    function log(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `log-line ${type}`;
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'log-time';
+      const now = new Date();
+      timeSpan.innerText = `[${now.toTimeString().split(' ')[0]}]`;
+
+      const msgSpan = document.createElement('span');
+      msgSpan.className = 'log-msg';
+      msgSpan.innerText = message;
+
+      line.appendChild(timeSpan);
+      line.appendChild(msgSpan);
+      
+      terminalLog.appendChild(line);
+      terminalLog.scrollTop = terminalLog.scrollHeight;
+    }
+
+    // Initialize Web Worker Thread
+    function initWebWorker() {
+      if (computeWorker) {
+        computeWorker.terminate();
+      }
+      
+      computeWorker = new Worker('worker_thread.js');
+      
+      computeWorker.onmessage = function (e) {
+        const data = e.data;
+        
+        if (data.type === 'task_completed') {
+          isComputing = false;
+          updateStatus();
+          
+          completedTasks++;
+          completedDisplay.innerText = completedTasks;
+          
+          const speedK = Math.round(data.throughput / 1000);
+          throughputDisplay.innerText = `${speedK} kE/s`;
+          latencyDisplay.innerText = `${Math.round(data.durationMs)}ms`;
+
+          log(`✓ Task ${data.taskId.substring(0, 12)}... completed in ${Math.round(data.durationMs)}ms`, 'success');
+
+          // Send gradients back
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'task_completed',
+              taskId: data.taskId,
+              outputs: data.outputs
+            }));
+          }
+        } 
+        
+        else if (data.type === 'task_failed') {
+          isComputing = false;
+          updateStatus();
+          
+          failedTasks++;
+          failedDisplay.innerText = failedTasks;
+          
+          log(`✗ Task failed: ${data.error}`, 'error');
+
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+              type: 'task_failed',
+              taskId: data.taskId,
+              error: data.error
+            }));
+          }
+        }
+      };
+
+      computeWorker.onerror = function (err) {
+        isComputing = false;
+        updateStatus();
+        log(`Worker thread error: ${err.message}`, 'error');
+      };
+    }
+
+    // Connect node to cluster
+    function connect() {
+      const url = serverUrlInput.value || serverUrlInput.placeholder;
+      log(`Connecting to orchestrator at ${url}...`);
+
+      try {
+        socket = new WebSocket(url);
+      } catch (err) {
+        log(`Connection creation failed: ${err.message}`, 'error');
+        return;
+      }
+
+      socket.onopen = function () {
+        isConnected = true;
+        updateStatus();
+        connectBtn.innerText = 'Disconnect';
+        connectBtn.className = 'disconnect';
+        log(`Connected successfully. Registering node ID: ${workerId}`, 'success');
+
+        // Detect basic device details
+        const deviceInfo = {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          cores: navigator.hardwareConcurrency || 4,
+          browser: getBrowserName()
+        };
+
+        // Send registration
+        socket.send(JSON.stringify({
+          type: 'register',
+          workerId,
+          deviceInfo
+        }));
+
+        // Initialize compute background thread
+        initWebWorker();
+
+        // Start heartbeat ping
+        startHeartbeats();
+      };
+
+      socket.onmessage = function (event) {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'assign_task') {
+            log(`⚡ Task assigned: ${message.taskId.substring(0, 12)}...`, 'info');
+            isComputing = true;
+            updateStatus();
+
+            // Delegate computation to background worker thread
+            computeWorker.postMessage({
+              type: 'execute_task',
+              taskId: message.taskId,
+              dsl: message.dsl,
+              shapes: message.shapes,
+              inputs: message.inputs
+            });
+          } 
+          
+          else if (message.type === 'terminate_task') {
+            log(`! Received termination command for task: ${message.taskId}`, 'error');
+            // Hard-kill worker to interrupt loop
+            initWebWorker();
+            isComputing = false;
+            updateStatus();
+          } 
+          
+          else if (message.type === 'disconnect') {
+            log('Disconnected by server request.', 'error');
+            disconnect();
+          }
+        } catch (err) {
+          log(`Failed parsing socket frame: ${err.message}`, 'error');
+        }
+      };
+
+      socket.onclose = function () {
+        log('Connection closed by remote orchestrator.', 'error');
+        disconnect();
+      };
+
+      socket.onerror = function (err) {
+        log(`Socket error: Connection failed.`, 'error');
+        disconnect();
+      };
+    }
+
+    function disconnect() {
+      isConnected = false;
+      isComputing = false;
+      updateStatus();
+      
+      connectBtn.innerText = 'Connect Node';
+      connectBtn.className = '';
+
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+
+      if (computeWorker) {
+        computeWorker.terminate();
+        computeWorker = null;
+      }
+
+      stopHeartbeats();
+    }
+
+    // Heartbeats
+    function startHeartbeats() {
+      stopHeartbeats();
+      heartInterval = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          const rawSpeed = throughputDisplay.innerText;
+          const speedNum = parseInt(rawSpeed) || 0;
+          socket.send(JSON.stringify({
+            type: 'heartbeat',
+            throughput: speedNum * 1000 // send actual elements speed
+          }));
+        }
+      }, 5000);
+    }
+
+    function stopHeartbeats() {
+      if (heartInterval) {
+        clearInterval(heartInterval);
+        heartInterval = null;
+      }
+    }
+
+    function updateStatus() {
+      if (isComputing) {
+        statusDot.className = 'status-dot computing';
+        statusText.innerText = 'Computing Batch';
+      } else if (isConnected) {
+        statusDot.className = 'status-dot connected';
+        statusText.innerText = 'Idle / Waiting';
+      } else {
+        statusDot.className = 'status-dot';
+        statusText.innerText = 'Disconnected';
+      }
+    }
+
+    function getBrowserName() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Firefox')) return 'Firefox';
+      if (ua.includes('Chrome')) return 'Chrome';
+      if (ua.includes('Safari')) return 'Safari';
+      return 'Generic Browser';
+    }
+
+    // Click handler
+    connectBtn.addEventListener('click', () => {
+      if (isConnected) {
+        disconnect();
+      } else {
+        connect();
+      }
+    });
+
+    // Auto connect on start if page loaded directly from server
+    if (window.location.host) {
+      setTimeout(() => {
+        connect();
+      }, 800);
+    }
+  </script>
+</body>
+</html>
