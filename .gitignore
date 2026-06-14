@@ -14,4 +14,4 @@ _*_result.txt
 # Local training datasets
 data/
 # PR scratch (not part of the repo)
-PULL_REQUEST.md
+PULL_REQUEST*.md

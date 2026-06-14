@@ -12,7 +12,7 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 2 (v1.0.0 baseline + v1.1.0)
+- **Versions shipped:** 3 (v1.0.0 baseline + v1.1.0 + v1.2.0)
 - **Sessions:** 2026-06-14
 - **First change:** 2026-06-14 ~10:30 UTC
 - **Latest change:** 2026-06-14 13:42 UTC
@@ -28,6 +28,27 @@ All notable changes to this project, newest first.
 ## [Unreleased]
 
 *(work in flight — see commits for incremental status)*
+
+---
+
+## v1.2.0 — Worker resilience: auto-reconnect + tolerant heartbeat [🐛 Bug Fix + ⚡ Enhancement]
+
+**Started:** 2026-06-14 ~13:50 UTC
+**Shipped:** 2026-06-14
+**Duration:** ~15 min
+
+- **Drove this:** The event log showed healthy `MacIntel/Chrome` workers being dropped with "heartbeat timeout (15–16s silent)" a few minutes after registering. Root cause: browsers throttle background-tab timers and suspend WebSocket traffic, so the worker's 5s heartbeat stalls whenever its tab isn't foregrounded; the server then dropped it after 15s — and the worker had **no auto-reconnect**, so it stayed gone until a manual reload.
+
+- **What we did:**
+  - ✅ **Worker auto-reconnect with backoff** (`worker.html`). An unexpected socket close/error now schedules a reconnect (2s → 4s → … capped at 30s); the backoff resets on a successful connection. Refactored teardown into `cleanupConnection()`; `disconnect()` is the user/server-initiated stop (no reconnect), `handleDrop()` is the unexpected path (reconnects).
+  - ✅ **No reconnect when intentional** — a `manualStop` flag means clicking Disconnect or receiving the server's `disconnect` (kick) tears down for good; only genuine drops reconnect.
+  - ✅ **Tolerant heartbeat timeout** (`orchestrator.ts`) raised 15s → 45s to avoid false drops during brief throttling. An actively computing worker already stays alive via `task_completed` updating `lastSeen`.
+
+- **How it helps:** Workers survive tab-switches, network blips, and short sleeps — they rejoin automatically instead of silently disappearing, and the server stops dropping healthy nodes over momentary heartbeat gaps.
+
+- **Known limits:** A fully backgrounded tab can still be throttled to ~1 timer/min by the browser; auto-reconnect recovers it once it's foregrounded again. For long unattended runs, keep worker tabs foregrounded and disable sleep (see the worker join guide).
+
+- **Roadmap status:** Worker resilience → Done. Open follow-ups unchanged (GPT live sampling, LR schedule, FP16 compute).
 
 ---
 

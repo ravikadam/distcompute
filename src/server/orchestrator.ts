@@ -278,7 +278,11 @@ export class Orchestrator {
   // Monitor heartbeats and drop unresponsive workers
   private checkHeartbeats() {
     const now = Date.now();
-    const heartbeatTimeout = 15000; // 15 seconds
+    // 45s (was 15s): browsers throttle background-tab timers and WebSocket
+    // traffic, so a brief tab-switch could drop a healthy worker. The worker
+    // also auto-reconnects, so this just reduces false drops. An actively
+    // computing worker stays alive via task_completed updating lastSeen.
+    const heartbeatTimeout = 45000;
 
     for (const [id, worker] of this.workers.entries()) {
       if (now - worker.lastSeen > heartbeatTimeout) {
