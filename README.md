@@ -74,7 +74,7 @@ flowchart TB
 ### Architectural Component Breakdown
 
 #### 1. PyTorch-like Symbolic Compiler (`src/compiler/`)
-* **Dynamic Computational Graph**: Builds a Directed Acyclic Graph (DAG) when the model layers (e.g. `Linear`, `MLP`, `SelfAttention`) are run symbolically.
+* **Dynamic Computational Graph**: Builds a Directed Acyclic Graph (DAG) when the model layers (e.g. `Embedding`, `LayerNorm`, `CausalSelfAttention`, `TransformerBlock`) are run symbolically.
 * **Topological Automatic Differentiation**: Performs a topological sort on active nodes and traverses the DAG in reverse order to inject gradient accumulation instructions.
 * **Auto-Broadcasting Reductions**: Automatically detects and inserts broadcasting shape correction nodes (via axis-summing and reshaping opcodes) during backpropagation to match broadcast shapes.
 * **DSL Code Generator**: Emits a combined forward and backward assembly instruction script for the VM.
@@ -88,7 +88,7 @@ flowchart TB
 * **Batch Slicing**: Splits a global training batch (e.g., size 128) into smaller data-parallel slices (e.g., 4 tasks of size 32).
 * **Scheduling Queue**: Matches tasks to idle workers and delivers them over WebSocket connection payloads.
 * **Fault Tolerance & Heartbeats**:
-  - Monitors worker heartbeats every 3 seconds. Workers failing to ping within 15 seconds are dropped.
+  - Monitors worker heartbeats every 3 seconds. Workers failing to ping within 45 seconds are dropped.
   - Monitors task completion. If a worker does not return gradients within 40 seconds, the scheduler cancels the task, marks the worker as failed, and pushes the task back to the front of the queue to be processed by a healthy worker.
 
 #### 4. Zero-RAM Dataset Seeker (`src/server/trainer.ts`)
@@ -100,13 +100,36 @@ flowchart TB
 
 ---
 
+## 🤖 Supported Model Architectures
+
+The cluster supports two primary categories of model architectures:
+
+### 1. Legacy Character-level MLP
+* A simple feed-forward neural network predicting characters.
+* Capacities (hidden dimensions, context length) are configured dynamically via the dashboard UI.
+
+### 2. GPT (Generative Pre-trained Transformer) Models
+Our system implements a GPT architecture patterned after **Radford et al. 2018 (GPT-1 / GPT-2 shape)**. Features include:
+* Learned token + position embeddings.
+* Pre-LayerNorm block structure.
+* Causal multi-head self-attention with causal triangular masking.
+* GELU-activated feed-forward MLP layers.
+* Weight-tied language modeling head.
+* Byte-level vocabulary of 256 (no tokenizer vocabulary file required; text is mapped directly to UTF-8 bytes).
+
+We offer two presets:
+* **Tiny-GPT (Recommended)**: 2–4 layers, 4 attention heads, 128 embedding dimensions, 512 feed-forward dimensions, and a context window of 128. Totaling **~0.84M parameters**, it is designed to fit comfortably in browser memory sandboxes and runs efficiently on standard client devices.
+* **GPT-1 (Canonical reference)**: 12 layers, 12 attention heads, 768 embedding dimensions, 3072 feed-forward dimensions, BPE tokenizer (vocab=40,478), and a context window of 512. Totaling **~117M parameters**, it is a correct mathematical reference but requires ~466MB of weights per task, making it impractical for browser-worker execution.
+
+---
+
 ## 📜 DSL Instruction Reference
 
 The compiled assembly language uses a simple text format. Lines beginning with `#` are comments. Each instruction specifies an operation followed by register outputs and inputs:
 
 | Opcode | Arguments | Description |
 | :--- | :--- | :--- |
-| `matmul` | `out, in1, in2` | Performs matrix multiplication `out = in1 @ in2` (supports 2D and 3D batched inputs). |
+| `matmul` | `out, in1, in2` | Performs matrix multiplication `out = in1 @ in2` (supports 2D and 3D batched inputs with $O(1)$ transpositions for multi-head attention). |
 | `transpose` | `out, in` | Transposes the last two dimensions of `in` in $O(1)$ time by swapping strides. |
 | `add` | `out, in1, in2` | Element-wise addition with broadcasting support. |
 | `sub` | `out, in1, in2` | Element-wise subtraction with broadcasting support. |
@@ -119,8 +142,65 @@ The compiled assembly language uses a simple text format. Lines beginning with `
 | `relu_grad` | `out, grad, in` | Computes the backpropagation gradient of the ReLU function. |
 | `gelu` | `out, in` | Applies the Gaussian Error Linear Unit activation function. |
 | `gelu_grad` | `out, grad, in` | Computes the backpropagation gradient of the GELU function. |
+| `embedding` | `out, table, ids` | Gathers row vectors from embedding `table` given token indices `ids`. |
+| `embedding_grad` | `gTable, dy, ids` | Scatter-adds gradients `dy` back into the embedding table gradient accumulator `gTable`. |
+| `layernorm` | `out, x, gamma, beta` | Applies layer normalization over the last dimension of input `x`. |
+| `layernorm_grad` | `dx, dg, db, dy, x, g` | Fused backpropagation through LayerNorm, emitting input, gamma, and beta gradients. |
 | `cross_entropy` | `loss, grad, logits, target` | Computes categorical cross-entropy loss and its symbolic gradient. |
 | `assign` | `out, in` | Copies values and metadata from `in` to `out`. |
+
+---
+
+## 📈 Stopping Criteria & Cosine LR Schedule
+
+### Token-Based stopping Target
+Rather than stopping by optimizer steps, training is governed by the total **Token/Example Target** (`targetTokens`).
+* **Tokens Target**: Training counts the cumulative processed text tokens (examples) via `cumulativeExamples`. Once it meets the specified target (e.g. `500,000` tokens), training halts and saves a final checkpoint.
+* **Legacy Step Target**: Set `Target Tokens / Examples` to `0` to fall back on `Target Steps` (e.g., stop after exactly 1,000 steps).
+* **Throughput and stable ETA**: Progress percent, GFLOPs, and ETA (Estimated Time of Arrival) are computed based on processed tokens and actual examples/sec. This stabilizes the forecasting metrics so that **adding more workers directly decreases the ETA**.
+
+### Warmup & Cosine LR Scheduler
+To prevent early divergence and settle into a lower loss minimum, you can configure the Learning Rate schedule:
+* **Linear Warmup**: Linearly scales the learning rate from `0` to the target `lr` over the configured `warmupSteps` (default: 200).
+* **Cosine Annealing**: Decays the learning rate from its peak value down to a fraction (10%) of the target rate using a cosine curve mapped over the token/step horizon.
+* Set `lrSchedule = 'constant'` to bypass the scheduler and use a flat rate.
+
+---
+
+## 💾 Resiliency, Run IDs & Checkpointing
+
+* **Unique Run Identity**: Every start is assigned a unique identifier (e.g., `run-1781454489444-593`). All task payloads are tagged with this run ID so workers log exactly what run they are currently computing.
+* **Periodic Checkpointing**: Weights, Adam states ($m$/$v$), steps, epochs, and hyperparameter configuration configurations are automatically saved on the server disk under `checkpoints/<runId>/` every `checkpointEverySteps` (default: 20 steps) and on completion.
+* **Seamless Resume**: The **Training Runs** dashboard panel lists all past runs. Clicking the **Resume** button restores the active parameters and optimizer states, allowing you to pick up exactly where you left off. Workers will automatically rejoin the resumed run without manual intervention.
+
+---
+
+## 🐍 Running Exported GPT Models in Python
+
+After training a GPT model in the cluster, you can download the weights and run text generation locally using PyTorch and Hugging Face.
+
+### Step 1: Download Weights
+1. Open the Admin Dashboard.
+2. Click the **"Download Weights"** button. This downloads a JSON file containing the trained matrices and character lookup dictionaries (e.g. `model_weights.json`).
+
+### Step 2: Install Python Prerequisites
+Ensure you have Python 3 and the required libraries installed:
+```bash
+pip install torch transformers numpy
+```
+
+### Step 3: Run the Generation Script
+Run the built-in python utility to load the JSON weights into a standard Hugging Face `GPT2LMHeadModel` and generate text:
+```bash
+python tools/run_exported_model.py --weights model_weights.json --prompt "To be, or not to be" --tokens 200 --temperature 0.8
+```
+
+#### CLI Parameters:
+* `--weights` (Required): Path to your downloaded `model_weights.json` file.
+* `--prompt` (Default: "To be, or not to be"): Starting seed string for text generation.
+* `--tokens` (Default: 200): Number of tokens to generate.
+* `--temperature` (Default: 0.8): Creativity scaling factor (use `0` for greedy/argmax decoding).
+* `--manifest` (Optional): Path to the model's manifest file (e.g. `models/tiny-gpt.manifest.json`) for loading exact hyperparameters.
 
 ---
 
@@ -149,7 +229,7 @@ npm run build
 > **`sh: tsc: command not found`?** TypeScript is installed locally as a project dev dependency, not globally, so the bare `tsc` command is not on your `PATH`. Always run the build through npm (`npm run build`) or invoke the local binary with `npx tsc`. Run `npm install` first so the local `tsc` exists in `node_modules/.bin`. (Alternatively, install it globally with `npm install -g typescript`.)
 
 ### 3. Run Math and VM Tests
-Verify the mathematical accuracy of the Tensor VM operations:
+Verify the mathematical accuracy of the Tensor VM operations, compiler autodiff, and regression blocks:
 ```bash
 npm test
 ```
