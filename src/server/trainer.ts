@@ -84,7 +84,9 @@ export class Trainer {
   dslFilePath = '';
   mode: 'char' | 'gpt' = 'char';
   private gptBytes: Buffer | null = null;   // byte-level training corpus
-  private gptSampleNote = '(live sampling not yet available for GPT models)';
+  private gptSampleNote = '(start training a GPT model, then Generate a sample)';
+  private gptCfg: { vocab: number; d: number; nLayer: number; nHead: number; dFF: number; context: number } | null = null;
+  lastSample = '';                          // most recent generated text
 
   // Run identity + checkpointing. Each training run gets a unique id; the loop
   // saves weights + Adam state to disk every `checkpointEverySteps` so a run
@@ -596,6 +598,9 @@ export class Trainer {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const shapes: Record<string, number[]> = manifest.shapes;
     const B: number = manifest.batch, S: number = manifest.seq, N = B * S;
+    // Remember the architecture for byte-level live sampling.
+    const mc = manifest.config;
+    this.gptCfg = { vocab: mc.vocab, d: mc.dModel, nLayer: mc.nLayer, nHead: mc.nHead, dFF: mc.dFF, context: mc.context };
 
     // Byte-level training corpus (server dataset path, else the in-memory corpus).
     if (this.datasetFilePath && this.datasetFilePath.trim()) {
@@ -784,10 +789,109 @@ export class Trainer {
     }
   }
 
+  // ---- GPT byte-level live sampling -----------------------------------------
+
+  // Tight JS forward pass for a single sequence; returns the next-token logits
+  // for the LAST position. Mirrors the compiled GPT exactly (pre-norm blocks,
+  // causal multi-head attention, GELU MLP, weight-tied head, LN eps 1e-5).
+  private gptForwardLogits(ids: number[]): Float32Array {
+    const cfg = this.gptCfg!;
+    const d = cfg.d, H = cfg.nHead, dh = d / H, dFF = cfg.dFF, V = cfg.vocab, L = cfg.nLayer;
+    const S = ids.length, eps = 1e-5, W = this.weights, scale = 1 / Math.sqrt(dh);
+
+    const x = new Float32Array(S * d);
+    for (let t = 0; t < S; t++)
+      for (let k = 0; k < d; k++) x[t * d + k] = W['wte'][ids[t] * d + k] + W['wpe'][t * d + k];
+
+    const layernorm = (inp: Float32Array, g: Float32Array, b: Float32Array) => {
+      const out = new Float32Array(S * d);
+      for (let t = 0; t < S; t++) {
+        let m = 0; for (let k = 0; k < d; k++) m += inp[t * d + k]; m /= d;
+        let v = 0; for (let k = 0; k < d; k++) { const c = inp[t * d + k] - m; v += c * c; } v /= d;
+        const r = 1 / Math.sqrt(v + eps);
+        for (let k = 0; k < d; k++) out[t * d + k] = (inp[t * d + k] - m) * r * g[k] + b[k];
+      }
+      return out;
+    };
+    const linear = (inp: Float32Array, w: Float32Array, b: Float32Array, inD: number, outD: number) => {
+      const out = new Float32Array(S * outD);
+      for (let t = 0; t < S; t++)
+        for (let o = 0; o < outD; o++) {
+          let s = b[o]; const base = t * inD;
+          for (let k = 0; k < inD; k++) s += inp[base + k] * w[k * outD + o];
+          out[t * outD + o] = s;
+        }
+      return out;
+    };
+
+    for (let l = 0; l < L; l++) {
+      const p = `h${l}_`;
+      const h = layernorm(x, W[p + 'ln1_g'], W[p + 'ln1_b']);
+      const Q = linear(h, W[p + 'attn_wq_w'], W[p + 'attn_wq_b'], d, d);
+      const K = linear(h, W[p + 'attn_wk_w'], W[p + 'attn_wk_b'], d, d);
+      const Vv = linear(h, W[p + 'attn_wv_w'], W[p + 'attn_wv_b'], d, d);
+      const ctxv = new Float32Array(S * d);
+      for (let hd = 0; hd < H; hd++) {
+        const off = hd * dh;
+        for (let i = 0; i < S; i++) {
+          const sc = new Float32Array(i + 1); let mx = -Infinity;
+          for (let j = 0; j <= i; j++) {
+            let dot = 0; for (let k = 0; k < dh; k++) dot += Q[i * d + off + k] * K[j * d + off + k];
+            sc[j] = dot * scale; if (sc[j] > mx) mx = sc[j];
+          }
+          let sum = 0; for (let j = 0; j <= i; j++) { sc[j] = Math.exp(sc[j] - mx); sum += sc[j]; }
+          for (let k = 0; k < dh; k++) {
+            let acc = 0; for (let j = 0; j <= i; j++) acc += (sc[j] / sum) * Vv[j * d + off + k];
+            ctxv[i * d + off + k] = acc;
+          }
+        }
+      }
+      const proj = linear(ctxv, W[p + 'attn_wo_w'], W[p + 'attn_wo_b'], d, d);
+      for (let n = 0; n < S * d; n++) x[n] += proj[n];
+      const h2 = layernorm(x, W[p + 'ln2_g'], W[p + 'ln2_b']);
+      const ff = linear(h2, W[p + 'mlp_fc_w'], W[p + 'mlp_fc_b'], d, dFF);
+      for (let n = 0; n < ff.length; n++) { const u = ff[n]; ff[n] = 0.5 * u * (1 + Math.tanh(0.7978845608 * (u + 0.044715 * u * u * u))); }
+      const ff2 = linear(ff, W[p + 'mlp_proj_w'], W[p + 'mlp_proj_b'], dFF, d);
+      for (let n = 0; n < S * d; n++) x[n] += ff2[n];
+    }
+
+    const xf = layernorm(x, W['ln_f_g'], W['ln_f_b']);
+    const last = (S - 1) * d, wte = W['wte'], logits = new Float32Array(V);
+    for (let v = 0; v < V; v++) { let s = 0; const base = v * d; for (let k = 0; k < d; k++) s += xf[last + k] * wte[base + k]; logits[v] = s; }
+    return logits;
+  }
+
+  // Autoregressively generate text from a prompt (byte-level).
+  generateSample(prompt: string, nTokens = 48, temperature = 0.8): string {
+    if (this.mode !== 'gpt' || !this.gptCfg || !this.weights['wte']) return this.samplePrediction();
+    const ctxLen = this.gptCfg.context;
+    let ids = Array.from(Buffer.from(prompt && prompt.length ? prompt : ' ', 'utf8'));
+    if (ids.length === 0) ids = [32];
+    const n = Math.min(Math.max(1, nTokens), 256);
+    for (let i = 0; i < n; i++) {
+      const logits = this.gptForwardLogits(ids.slice(-ctxLen));
+      let next: number;
+      if (temperature <= 0) {
+        let bi = 0, bv = -Infinity;
+        for (let v = 0; v < logits.length; v++) if (logits[v] > bv) { bv = logits[v]; bi = v; }
+        next = bi;
+      } else {
+        let mx = -Infinity; for (let v = 0; v < logits.length; v++) if (logits[v] > mx) mx = logits[v];
+        let sum = 0; const probs = new Float32Array(logits.length);
+        for (let v = 0; v < logits.length; v++) { probs[v] = Math.exp((logits[v] - mx) / temperature); sum += probs[v]; }
+        let r = Math.random() * sum, acc = 0; next = logits.length - 1;
+        for (let v = 0; v < logits.length; v++) { acc += probs[v]; if (r <= acc) { next = v; break; } }
+      }
+      ids.push(next);
+    }
+    this.lastSample = Buffer.from(ids).toString('utf8');
+    return this.lastSample;
+  }
+
   // Generate text (sampling) based on current model weights
   samplePrediction(): string {
-    // GPT live sampling needs a separate B=1 forward graph; not wired yet.
-    if (this.mode === 'gpt') return this.gptSampleNote;
+    // GPT: show the most recent on-demand sample (full generation is via generateSample()).
+    if (this.mode === 'gpt') return this.lastSample || this.gptSampleNote;
     let context = "hel"; // starting prompt
     let out = context;
 

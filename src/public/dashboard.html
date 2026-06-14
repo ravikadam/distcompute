@@ -193,13 +193,20 @@
       <!-- LLM Output Observation Card -->
       <section class="prediction-card">
         <div class="card-header">
-          <h3 class="card-title">Live LLM Generation Observability</h3>
-          <span class="badge">Weights & Biases Mock Sync</span>
+          <h3 class="card-title">Live LLM Generation</h3>
+          <span class="badge">Sampled from current weights</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+          <input type="text" id="samplePrompt" value="To be, or not to be" placeholder="prompt"
+                 style="flex:1;min-width:200px;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:14px;">
+          <input type="number" id="sampleTemp" min="0" max="2" step="0.1" value="0.8" title="temperature (0 = greedy)"
+                 style="width:80px;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:10px;color:#fff;font-family:inherit;font-size:14px;">
+          <button type="button" id="genSampleBtn" class="btn-outline" style="padding:10px 18px;">Generate sample</button>
         </div>
         <div class="prediction-output-box">
-          <div class="prompt-marker">&gt; Prompt: "hel" (character auto-generation loop)</div>
+          <div class="prompt-marker">&gt; model output (byte-level)</div>
           <div id="sampledPredictionText" class="prediction-text">
-            Initializing training loop to observe text convergence...
+            Start a GPT run, then click Generate sample to read what the model writes.
           </div>
         </div>
       </section>
@@ -941,6 +948,19 @@
     fetchModels();
     renderEstimator();
     setTimeout(pollAll, 600);
+
+    // --- Live text sampling ---
+    document.getElementById('genSampleBtn').addEventListener('click', () => {
+      const btn = document.getElementById('genSampleBtn');
+      btn.disabled = true; btn.innerText = 'Generating…';
+      const prompt = encodeURIComponent(document.getElementById('samplePrompt').value || '');
+      const temp = document.getElementById('sampleTemp').value || '0.8';
+      fetch(`/api/sample?prompt=${prompt}&tokens=80&temperature=${temp}`)
+        .then(r => r.json()).then(d => {
+          btn.disabled = false; btn.innerText = 'Generate sample';
+          document.getElementById('sampledPredictionText').innerText = d.text || '(no output)';
+        }).catch(e => { btn.disabled = false; btn.innerText = 'Generate sample'; alert('Sample failed: ' + e.message); });
+    });
 
     // Start
     connect();

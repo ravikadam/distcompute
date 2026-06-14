@@ -12,11 +12,11 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 6 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0 + v1.5.0)
+- **Versions shipped:** 7 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0 + v1.5.0 + v1.6.0)
 - **Sessions:** 2026-06-14
 - **First change:** 2026-06-14 09:52 UTC
-- **Latest change:** 2026-06-14 ~17:54 UTC
-- **Time spent (wall-clock window):** ~8h 2m (one session; includes gaps for on-cluster testing between iterations)
+- **Latest change:** 2026-06-14 ~18:25 UTC
+- **Time spent (wall-clock window):** ~8h 33m (one session; includes gaps for on-cluster testing between iterations)
 - **🐛 Bug Fixes:** 12
 - **⚡ Enhancements:** 1 (tolerant heartbeat timeout)
 - **✨ New Features:** 13
@@ -29,6 +29,27 @@ All notable changes to this project, newest first.
 ## [Unreleased]
 
 *(work in flight — see commits for incremental status)*
+
+---
+
+## v1.6.0 — GPT live text sampling [✨ New Feature]
+
+**Started:** 2026-06-14 ~17:55 UTC
+**Shipped:** 2026-06-14 ~18:25 UTC
+**Duration:** ~30 min
+
+- **Drove this:** For GPT models the dashboard only showed a placeholder — you could watch the loss fall but never *read* what the model writes, which is the most honest "is it good yet?" check (and the natural complement to the cosine-LR plateau fix).
+
+- **What we did:**
+  - ✅ **Tight JS GPT forward** (`trainer.gptForwardLogits`) — a single-sequence forward pass that mirrors the compiled model exactly (token+position embeddings, pre-norm blocks, causal multi-head attention, GELU MLP, weight-tied head, LN eps 1e-5). Much faster than running the VM for B=1, and **validated against the VM/DSL forward to ~1e-7** (float precision).
+  - ✅ **Autoregressive `generateSample(prompt, n, temperature)`** — byte-level, with temperature sampling or greedy (`temperature = 0`); caches the last sample so it also feeds the dashboard prediction box.
+  - ✅ **`GET /api/sample`** + dashboard controls — a prompt box, temperature input, and **Generate sample** button in the Live LLM Generation card render real model output on demand.
+
+- **How it helps:** You can now read generated text from the current weights at any point in training — the direct way to see structure emerge (and to tell "converged" from "stuck") alongside the loss / grad-norm graphs.
+
+- **Known limits:** Generation is synchronous (briefly blocks the event loop — fine for short samples on Tiny-GPT) and has no KV cache, so it's O(context²) per token. On-demand only (not auto-run every step). GPT-1-scale generation would be slow.
+
+- **Roadmap status:** GPT live sampling → Done. Open: WASM SIMD matmul, binary-frame transport.
 
 ---
 
@@ -45,6 +66,7 @@ All notable changes to this project, newest first.
   - ✅ **Periodic checkpoints** (`checkpoints.ts`, `CheckpointStore`) — the loop saves weights + full Adam state (m/v) + step/epoch/counters + the run's config to `checkpoints/<runId>/` every `checkpointEverySteps` (default 20 — small so a crash loses only minutes) and once more when a target is reached. Stored as base64 Float32Arrays; meta kept in a small `meta.json` for fast listing.
   - ✅ **List + resume** — `GET /api/runs` lists past runs (newest first); `POST /api/training/resume` restores a run's config, weights, Adam state, step, and counters from its latest checkpoint and continues training. New dashboard "Training Runs" panel shows every run (id, model, step, loss, updated) with a Resume button.
   - ✅ **Workers rejoin the same run automatically** — workers are stateless task-executors, so reconnecting nodes (via the v1.2.0 auto-reconnect) immediately serve whatever run is active on the orchestrator; the run id now rides along on tasks for visibility.
+  - ✅ **README expanded** — documented the DSL (purpose, full opcode table incl. embedding/LayerNorm, `.dsl` files), the supported model architectures (Char-MLP / Tiny-GPT / GPT-1), how to decide when training should stop, and how to run an exported model in Python via HuggingFace.
 
 - **How it helps:** A crash, sleep, or network change no longer means starting over — resume from the last checkpoint (at most a few hundred steps lost), and the cluster picks up where it left off.
 
