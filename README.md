@@ -23,9 +23,9 @@ flowchart TB
             Scheduler["Orchestrator Scheduler<br>(Fault-Tolerant Queue)"]
             DiskData["Zero-RAM Dataset Seeker<br>(fs.readSync seeking)"]
             
-            Trainer <-->|Constructs Models| Compiler
-            Trainer <-->|Batches & Gradients| Scheduler
-            Trainer <-->|On-demand Slices| DiskData
+            Trainer <-->|"Constructs Models"| Compiler
+            Trainer <-->|"Batches & Gradients"| Scheduler
+            Trainer <-->|"On-demand Slices"| DiskData
             ExpressServer <--> WSServer
         end
 
@@ -46,19 +46,19 @@ flowchart TB
         WebWorker["Web Worker Thread<br>(worker_thread.js)"]
         VM["Tensor VM Interpreter<br>(vm.js)"]
         
-        MainThread <-->|postMessage (Task Data)| WebWorker
-        WebWorker -->|Executes DSL instructions| VM
+        MainThread <-->|"postMessage (Task Data)"| WebWorker
+        WebWorker -->|"Executes DSL instructions"| VM
     end
 
     %% Communications
-    Dashboard <-->|WebSockets: Stats, Controls, Logs| WSServer
-    Dashboard --->|HTTP POST: Configure Hyperparameters / Small Datasets| ExpressServer
+    Dashboard <-->|"WebSockets: Stats, Controls, Logs"| WSServer
+    Dashboard --->|"HTTP POST: Configure Hyperparameters / Small Datasets"| ExpressServer
     
-    WSServer <-->|WebSockets: Tasks & Gradients| Worker1
-    WSServer <-->|WebSockets: Tasks & Gradients| Worker2
-    WSServer <-->|WebSockets: Tasks & Gradients| WorkerN
+    WSServer <-->|"WebSockets: Tasks & Gradients"| Worker1
+    WSServer <-->|"WebSockets: Tasks & Gradients"| Worker2
+    WSServer <-->|"WebSockets: Tasks & Gradients"| WorkerN
     
-    Worker1 <-->|Internal Threading| MainThread
+    Worker1 <-->|"Internal Threading"| MainThread
     
     classDef server fill:#1e1e2f,stroke:#8b5cf6,stroke-width:2px,color:#fff;
     classDef worker fill:#0c0c14,stroke:#10b981,stroke-width:2px,color:#fff;
