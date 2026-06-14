@@ -214,6 +214,21 @@ app.get('/api/models', (req, res) => {
   res.json({ models });
 });
 
+// Generate a text sample from the current model weights (GPT live sampling).
+app.get('/api/sample', (req, res) => {
+  try {
+    const prompt = req.query.prompt != null ? String(req.query.prompt) : 'To be';
+    const tokens = req.query.tokens ? parseInt(String(req.query.tokens)) : 48;
+    const temperature = req.query.temperature ? parseFloat(String(req.query.temperature)) : 0.8;
+    const text = trainer.mode === 'gpt'
+      ? trainer.generateSample(prompt, tokens, temperature)
+      : trainer.samplePrediction();
+    res.json({ text, mode: trainer.mode });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Recent worker lifecycle events (disconnects, timeouts, kicks, failures).
 app.get('/api/logs', (req, res) => {
   const limit = req.query.limit ? parseInt(String(req.query.limit)) : 100;
