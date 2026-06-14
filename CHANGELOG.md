@@ -14,9 +14,9 @@ All notable changes to this project, newest first.
 
 - **Versions shipped:** 6 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0 + v1.5.0)
 - **Sessions:** 2026-06-14
-- **First change:** 2026-06-14 ~10:30 UTC
+- **First change:** 2026-06-14 09:52 UTC
 - **Latest change:** 2026-06-14 ~17:54 UTC
-- **Time spent (wall-clock window):** ~7h 24m (one session; includes gaps for on-cluster testing between iterations)
+- **Time spent (wall-clock window):** ~8h 2m (one session; includes gaps for on-cluster testing between iterations)
 - **🐛 Bug Fixes:** 12
 - **⚡ Enhancements:** 1 (tolerant heartbeat timeout)
 - **✨ New Features:** 13
@@ -119,9 +119,9 @@ All notable changes to this project, newest first.
 
 ## v1.1.0 — FP16 transport, full observability, and a faithful GPT-1 DSL + Tiny-GPT training [✨ New Feature + 🐛 Bug Fix + 🚀 Major Rewrite]
 
-**Started:** 2026-06-14 ~10:30 UTC
+**Started:** 2026-06-14 09:52 UTC
 **Shipped:** 2026-06-14 13:42 UTC
-**Duration:** ~3h 12m wall-clock (one session, including on-cluster testing between iterations)
+**Duration:** ~3h 50m wall-clock (one session, including on-cluster testing between iterations)
 
 - **Drove this:** The project started as a toy char-MLP distributed trainer. A round of real testing surfaced concrete bugs (broken Kick, only 4 workers ever used, jittery mobile UI, a TS build error), and the user then pushed it much further: run thousands of workers, halve bandwidth with FP16, see how much work is left and forecast time, log to Weights & Biases, persist config, and — the headline — compile a *faithful GPT-1* to a `.dsl` and actually train a byte-level Tiny-GPT across the cluster.
 
