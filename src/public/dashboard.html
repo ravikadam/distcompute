@@ -44,6 +44,9 @@
         <div>
           <h1>Cluster Management Console</h1>
           <p>Training a 7,000 parameter Character-level Neural Net via Distributed Web Workers</p>
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; margin-top: 8px; color: var(--text-muted);">
+            Worker Join URL: <a id="workerLink" href="#" target="_blank" style="color: #67e8f9; text-decoration: underline;">loading...</a>
+          </div>
         </div>
         <div class="header-actions">
           <button id="startTrainBtn" class="btn-primary">Start Training</button>
@@ -169,6 +172,7 @@
     const epochDisplay = document.getElementById('trainingEpoch');
     const predictionDisplay = document.getElementById('sampledPredictionText');
     const workersTableBody = document.getElementById('workersTableBody');
+    const workerLink = document.getElementById('workerLink');
 
     // Config Elements
     const configForm = document.getElementById('configForm');
@@ -237,6 +241,10 @@
             stepDisplay.innerText = `Step ${data.step}`;
             epochDisplay.innerText = `Epoch ${data.epoch}`;
             predictionDisplay.innerText = `... ${data.prediction} ...`;
+          }
+          if (data.workerJoinUrl) {
+            workerLink.innerText = data.workerJoinUrl;
+            workerLink.href = data.workerJoinUrl;
           }
           if (data.config) {
             paramLR.value = data.config.lr;

@@ -76,6 +76,7 @@ app.get('/api/training/status', (req, res) => {
     loss: trainer.loss,
     prediction: trainer.samplePrediction(),
     workersCount: orchestrator.workers.size,
+    workerJoinUrl: `http://${localIp}:${PORT}/worker.html`,
     config: {
       lr: trainer.lr,
       batchSize: trainer.batchSize,
