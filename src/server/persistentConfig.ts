@@ -22,8 +22,15 @@ export interface TrainingConfig {
   datasetFilePath: string;
   /** Absolute path to a compiled .dsl model file to train from (optional). */
   dslFilePath: string;
-  /** Stop target in optimizer steps. 0 = run indefinitely (no fixed target). */
+  /** Stop target in optimizer steps. 0 = unused. Legacy; prefer targetTokens. */
   targetSteps: number;
+  /**
+   * Stop target in training tokens/examples processed. 0 = run indefinitely.
+   * Preferred over targetSteps because examples/step varies with worker count,
+   * so a token target makes "% complete" and ETA stable and improves (ETA
+   * drops) as you add workers. Takes precedence over targetSteps when > 0.
+   */
+  targetTokens: number;
   /** Wire precision for weights/gradients: 'fp16' (default) or 'fp32'. */
   precision: 'fp16' | 'fp32';
   /** Weights & Biases credentials (optional). */
@@ -40,6 +47,7 @@ export const DEFAULT_CONFIG: TrainingConfig = {
   datasetFilePath: '',
   dslFilePath: '',
   targetSteps: 0,
+  targetTokens: 0,
   precision: 'fp16',
   wandbApiKey: '',
   wandbProject: 'distcompute',

@@ -12,13 +12,14 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 3 (v1.0.0 baseline + v1.1.0 + v1.2.0)
+- **Versions shipped:** 4 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0)
 - **Sessions:** 2026-06-14
 - **First change:** 2026-06-14 ~10:30 UTC
-- **Latest change:** 2026-06-14 13:42 UTC
-- **Time spent (wall-clock window):** ~3h 12m (one session; includes gaps for on-cluster testing between iterations)
-- **🐛 Bug Fixes:** 9
-- **✨ New Features:** 12
+- **Latest change:** 2026-06-14 ~15:23 UTC
+- **Time spent (wall-clock window):** ~4h 50m (one session; includes gaps for on-cluster testing between iterations)
+- **🐛 Bug Fixes:** 12
+- **⚡ Enhancements:** 1 (tolerant heartbeat timeout)
+- **✨ New Features:** 13
 - **🚀 Major Rewrites:** 2 (GPT-1 compiler/VM extension, trainer `ModelRuntime` refactor)
 - **🧪 Tests added:** finite-difference autodiff checks for the full GPT stack (13) + a regression suite (38)
 - **Files:** compiler (compiler · modules) · VM (vm.js) · server (server · orchestrator · trainer · eventlog · persistentConfig · wandb · presets · dslStats) · client (dashboard · worker · worker_thread) · tools (gen_gpt1_dsl) · tests × 3 · models (gpt1.dsl · tiny-gpt.dsl + manifests) · README · CHANGELOG
@@ -31,11 +32,31 @@ All notable changes to this project, newest first.
 
 ---
 
-## v1.2.0 — Worker resilience: auto-reconnect + tolerant heartbeat [🐛 Bug Fix + ⚡ Enhancement]
+## v1.3.0 — Scaling: encode weights once per step + token-based target [⚡ Enhancement + 🐛 Bug Fix]
+
+**Started:** 2026-06-14 ~15:35 UTC
+**Shipped:** 2026-06-14 ~15:55 UTC
+**Duration:** ~20 min
+
+- **Drove this:** Adding workers was *increasing* the forecast time and slowing each step — the opposite of what distribution should do. Two root causes: (1) the trainer base64-encoded the full model weights **once per slice**, so the single-threaded server did O(numSlices × modelSize) of redundant encoding every step, growing with worker count; (2) the target was measured in **steps**, but examples/step scales with worker count, so adding workers inflated both the projected work and the per-step time in the step-based ETA.
+
+- **What we did:**
+  - ✅ **Encode weights once per step** (`trainer.ts`) — the identical global weights are base64-encoded a single time per step and the strings reused across all slices, instead of re-encoding inside the per-slice loop. Removes the `numSlices×` redundant work that blocked the event loop and scaled with worker count.
+  - ✅ **Token/example-based training target** (`targetTokens`) — stop and forecast by training tokens/examples processed rather than optimizer steps. `progress()` now computes `% complete`, ETA, and work-remaining from examples and measured `examples/sec`, so the numbers are stable as workers join and **ETA drops when you add workers** (verified: 4→8 workers halves ETA). Legacy `targetSteps` still works as a fallback when no token target is set. Dashboard field relabeled "Target Tokens / Examples".
+
+- **How it helps:** Per-step server CPU no longer grows with the number of workers, and the forecast finally reflects reality — more workers means more tokens/sec and a shorter ETA, not a longer one.
+
+- **Known limits:** Each step is still a synchronous barrier (`Promise.all`), so a single straggler still paces the step; softening that (per-step deadline / async gradient application) and moving serialization to `worker_threads` or binary frames remain open follow-ups.
+
+- **Roadmap status:** Encode-once + token target → Done. Open: straggler barrier, multi-threaded server serialization, cosine LR schedule, GPT live sampling.
+
+---
+
+## v1.2.0 — Worker resilience, accurate stats & training-health graphs [🐛 Bug Fix + ⚡ Enhancement + ✨ New Feature]
 
 **Started:** 2026-06-14 ~13:50 UTC
-**Shipped:** 2026-06-14
-**Duration:** ~15 min
+**Shipped:** 2026-06-14 ~15:23 UTC
+**Duration:** ~1h 35m wall-clock (resilience, then accurate stats and grad/ETA metrics folded into the same release)
 
 - **Drove this:** The event log showed healthy `MacIntel/Chrome` workers being dropped with "heartbeat timeout (15–16s silent)" a few minutes after registering. Root cause: browsers throttle background-tab timers and suspend WebSocket traffic, so the worker's 5s heartbeat stalls whenever its tab isn't foregrounded; the server then dropped it after 15s — and the worker had **no auto-reconnect**, so it stayed gone until a manual reload.
 
@@ -46,7 +67,7 @@ All notable changes to this project, newest first.
   - ✅ **Accurate worker stats** (`orchestrator.ts`) — a worker's `completedCount` is now **preserved across reconnects** (it was reset to 0 on every re-register, so the dashboard undercounted) and a worker is **credited for every task it finishes** even if that task was already reassigned/timed out (the count/throughput/liveness update moved outside the "task still active" gate). Fixes the dashboard COMPLETED lagging each worker's own tally and workers showing throughput with 0 completed.
   - ✅ **Gradient-norm + remaining-time metrics** — the trainer computes the global gradient L2 norm each step and logs `grad_norm` plus `eta_seconds`/`eta_minutes` to wandb (and exposes `gradNorm` on the dashboard work card), so you can graph training health and time-remaining instead of just step counters.
 
-- **How it helps:** Workers survive tab-switches, network blips, and short sleeps — they rejoin automatically instead of silently disappearing, and the server stops dropping healthy nodes over momentary heartbeat gaps.
+- **How it helps:** Workers survive tab-switches, network blips, and short sleeps — they rejoin automatically instead of silently disappearing, and the server stops dropping healthy nodes over momentary heartbeat gaps. The dashboard's per-worker COMPLETED now matches each worker's own tally, and the new `grad_norm` / time-remaining graphs make it possible to actually diagnose a run (e.g. spot the LR-driven loss plateau) rather than just watch a step counter climb.
 
 - **Known limits:** A fully backgrounded tab can still be throttled to ~1 timer/min by the browser; auto-reconnect recovers it once it's foregrounded again. For long unattended runs, keep worker tabs foregrounded and disable sleep (see the worker join guide).
 
