@@ -37,7 +37,9 @@ const trainer = new Trainer(orchestrator);
       datasetFilePath: c.datasetFilePath || undefined,
       targetSteps: c.targetSteps,
       targetTokens: c.targetTokens,
-      precision: c.precision
+      precision: c.precision,
+      lrSchedule: c.lrSchedule,
+      warmupSteps: c.warmupSteps
     });
     trainer.dslFilePath = c.dslFilePath || '';
     console.log('[Config] Restored persisted training configuration.');
@@ -100,15 +102,19 @@ app.post('/api/training/configure', (req, res) => {
 // does NOT reset weights, unlike /configure.
 app.post('/api/settings', (req, res) => {
   try {
-    const { targetSteps, targetTokens, dslFilePath, precision } = req.body;
+    const { targetSteps, targetTokens, dslFilePath, precision, lrSchedule, warmupSteps } = req.body;
     if (targetSteps !== undefined) trainer.targetSteps = parseInt(targetSteps) || 0;
     if (targetTokens !== undefined) trainer.targetTokens = parseInt(targetTokens) || 0;
     if (precision === 'fp16' || precision === 'fp32') trainer.precision = precision;
+    if (lrSchedule === 'warmup_cosine' || lrSchedule === 'constant') trainer.lrSchedule = lrSchedule;
+    if (warmupSteps !== undefined) trainer.warmupSteps = parseInt(warmupSteps) || 0;
     if (dslFilePath !== undefined) trainer.dslFilePath = String(dslFilePath);
     persistentConfig.update({
       targetSteps: trainer.targetSteps,
       targetTokens: trainer.targetTokens,
       precision: trainer.precision,
+      lrSchedule: trainer.lrSchedule,
+      warmupSteps: trainer.warmupSteps,
       ...(dslFilePath !== undefined ? { dslFilePath: String(dslFilePath) } : {})
     });
     res.json({ status: 'ok', config: persistentConfig.redacted() });
@@ -226,6 +232,8 @@ app.get('/api/training/status', (req, res) => {
       targetSteps: trainer.targetSteps,
       targetTokens: trainer.targetTokens,
       precision: trainer.precision,
+      lrSchedule: trainer.lrSchedule,
+      warmupSteps: trainer.warmupSteps,
       dslFilePath: persistentConfig.data.dslFilePath
     }
   });

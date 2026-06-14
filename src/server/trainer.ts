@@ -60,6 +60,15 @@ export class Trainer {
   // as workers are added, since examples/step scales with worker count.
   targetTokens = 0;
 
+  // Learning-rate schedule. 'warmup_cosine' ramps the LR from 0 to `lr` over
+  // `warmupSteps`, then cosine-anneals toward `minLrFrac × lr` across the run —
+  // the standard transformer recipe that breaks the early loss plateau a flat
+  // LR gets stuck on. 'constant' keeps the old fixed-LR behaviour.
+  lrSchedule: 'warmup_cosine' | 'constant' = 'warmup_cosine';
+  warmupSteps = 200;
+  minLrFrac = 0.1;          // cosine floor = 10% of the base LR
+  currentLr = 0.015;        // the LR actually applied this step (for graphing)
+
   // Optional Weights & Biases logger. Null unless a key has been configured.
   wandb: WandbLogger | null = null;
 
@@ -111,7 +120,7 @@ export class Trainer {
   }
 
   // Dynamically update training parameters and reset model weights
-  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string; targetSteps?: number; targetTokens?: number; precision?: 'fp16' | 'fp32' }) {
+  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string; targetSteps?: number; targetTokens?: number; precision?: 'fp16' | 'fp32'; lrSchedule?: 'warmup_cosine' | 'constant'; warmupSteps?: number }) {
     this.stop();
 
     if (config.lr !== undefined) this.lr = config.lr;
@@ -120,6 +129,8 @@ export class Trainer {
     if (config.contextLen !== undefined) this.contextLen = config.contextLen;
     if (config.targetSteps !== undefined) this.targetSteps = config.targetSteps;
     if (config.targetTokens !== undefined) this.targetTokens = config.targetTokens;
+    if (config.lrSchedule !== undefined) this.lrSchedule = config.lrSchedule;
+    if (config.warmupSteps !== undefined) this.warmupSteps = config.warmupSteps;
     if (config.precision !== undefined) this.precision = config.precision;
     
     // Reset server-side file tracking
@@ -310,8 +321,32 @@ export class Trainer {
       }
 
       try {
-        // Await all slices of the batch
-        const results = await Promise.all(tasksPromises);
+        // Collect completed slices up to a per-step deadline so a single
+        // straggler doesn't pace the whole step. Synchronous SGD simply uses a
+        // smaller batch that step (we average over whatever returned). The
+        // deadline adapts to recent task round-trip time.
+        const results: any[] = [];
+        let settledCount = 0;
+        for (const p of tasksPromises) {
+          p.then(r => results.push(r)).catch(() => { /* rejected slice ignored */ }).finally(() => { settledCount++; });
+        }
+        const recentRt = this.orchestrator.getTaskTiming().avgRoundTripMs || 4000;
+        const deadlineMs = Math.max(4000, recentRt * 1.5);
+        const waitStart = Date.now();
+        // Wait until every slice settles, or the deadline elapses with ≥1 result.
+        while (settledCount < numSlices && (Date.now() - waitStart < deadlineMs || results.length === 0)) {
+          await new Promise(r => setTimeout(r, 50));
+        }
+        const effectiveSlices = results.length;
+        if (effectiveSlices === 0) {
+          // Nothing returned at all (all workers slow/gone) — back off and retry.
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        const effExamples = effectiveSlices * model.examplesPerSlice;
+        if (effectiveSlices < numSlices) {
+          console.log(`Step ${this.step + 1}: ${effectiveSlices}/${numSlices} slices in (stragglers dropped this step)`);
+        }
 
         // Aggregate gradients
         const grads: Record<string, Float32Array> = {};
@@ -349,11 +384,11 @@ export class Trainer {
           }
         }
 
-        // Average gradients and loss
-        this.loss = totalLossVal / numSlices;
+        // Average gradients and loss over the slices that actually returned.
+        this.loss = totalLossVal / effectiveSlices;
         for (const key of Object.keys(this.weights)) {
           for (let i = 0; i < grads[key].length; i++) {
-            grads[key][i] /= numSlices;
+            grads[key][i] /= effectiveSlices;
           }
         }
 
@@ -366,9 +401,10 @@ export class Trainer {
         }
         this.gradNorm = Math.sqrt(gradSq);
 
-        // Update weights using Adam optimizer
-        this.applyAdamStep(grads);
+        // Update weights using Adam optimizer (step is 1-based here so the LR
+        // schedule sees the correct step number).
         this.step++;
+        this.applyAdamStep(grads);
 
         // Track step duration for the ETA estimate (rolling window of 50).
         const nowTs = Date.now();
@@ -378,12 +414,13 @@ export class Trainer {
         }
         this.lastStepTimestamp = nowTs;
 
-        // Accumulate work done (tasks, examples, FLOPs) for the forecast.
-        this.lastNumSlices = numSlices;
-        this.lastExamplesPerStep = currentBatchSize;
-        this.cumulativeTasks += numSlices;
-        this.cumulativeExamples += currentBatchSize;
-        this.cumulativeFlops += numSlices * this.flopsPerTask;
+        // Accumulate work done (tasks, examples, FLOPs) for the forecast — based
+        // on slices that actually completed this step, not the number dispatched.
+        this.lastNumSlices = effectiveSlices;
+        this.lastExamplesPerStep = effExamples;
+        this.cumulativeTasks += effectiveSlices;
+        this.cumulativeExamples += effExamples;
+        this.cumulativeFlops += effectiveSlices * this.flopsPerTask;
 
         // Stream metrics to Weights & Biases (fail-soft; never blocks training).
         if (this.wandb && this.wandb.active) {
@@ -392,9 +429,10 @@ export class Trainer {
             step: this.step,
             loss: this.loss,
             grad_norm: this.gradNorm,
+            lr: this.currentLr,
             epoch: this.epoch,
             workers: this.orchestrator.workers.size,
-            examples_per_step: currentBatchSize,
+            examples_per_step: effExamples,
             ...(p.percent >= 0
               ? { progress_pct: p.percent, eta_seconds: p.etaSeconds, eta_minutes: p.etaSeconds / 60 }
               : {})
@@ -580,6 +618,7 @@ export class Trainer {
       // counters
       step: this.step,
       gradNorm: this.gradNorm,
+      currentLr: this.currentLr,
       tasksCompleted: timing.totalCompleted,
       examplesProcessed: this.cumulativeExamples,
       flopsProcessed: this.cumulativeFlops,
@@ -631,10 +670,31 @@ export class Trainer {
     };
   }
 
+  // Learning rate for the current step under the active schedule.
+  effectiveLr(): number {
+    if (this.lrSchedule !== 'warmup_cosine') return this.lr;
+    const step = this.step; // step already incremented for this update
+    if (step <= this.warmupSteps) {
+      return this.lr * (step / Math.max(1, this.warmupSteps)); // linear warmup from ~0
+    }
+    // Cosine anneal over the run's step horizon. Derive the horizon from the
+    // target (steps directly, or tokens/examples-per-step); if open-ended, hold
+    // at the base LR after warmup (no horizon to decay across).
+    let horizon = 0;
+    const examplesPerStepNow = this.lastExamplesPerStep || this.batchSize;
+    if (this.targetSteps > 0 && this.targetTokens <= 0) horizon = this.targetSteps;
+    else if (this.targetTokens > 0 && examplesPerStepNow > 0) horizon = this.targetTokens / examplesPerStepNow;
+    if (horizon <= this.warmupSteps) return this.lr; // unknown/short horizon → constant
+    const prog = Math.min(1, Math.max(0, (step - this.warmupSteps) / (horizon - this.warmupSteps)));
+    const minLr = this.lr * this.minLrFrac;
+    return minLr + 0.5 * (this.lr - minLr) * (1 + Math.cos(Math.PI * prog));
+  }
+
   // Apply Adam optimization updates
   private applyAdamStep(grads: Record<string, Float32Array>) {
     this.tAdam++;
-    const lrEff = this.lr * Math.sqrt(1 - Math.pow(this.adamBeta2, this.tAdam)) / (1 - Math.pow(this.adamBeta1, this.tAdam));
+    this.currentLr = this.effectiveLr();
+    const lrEff = this.currentLr * Math.sqrt(1 - Math.pow(this.adamBeta2, this.tAdam)) / (1 - Math.pow(this.adamBeta1, this.tAdam));
 
     for (const key of Object.keys(this.weights)) {
       const w = this.weights[key];
