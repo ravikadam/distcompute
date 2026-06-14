@@ -219,6 +219,17 @@
             <label for="setTargetTokens">Target Tokens / Examples (0 = unlimited)</label>
             <input type="number" id="setTargetTokens" min="0" step="100000" value="0">
           </div>
+          <div class="form-group">
+            <label for="setLrSchedule">LR Schedule</label>
+            <select id="setLrSchedule" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;">
+              <option value="warmup_cosine">Warmup + cosine decay</option>
+              <option value="constant">Constant</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="setWarmupSteps">Warmup Steps</label>
+            <input type="number" id="setWarmupSteps" min="0" step="50" value="200">
+          </div>
           <div class="form-group full-width">
             <label for="setDslPath">Server-Side .dsl Model File Path (optional)</label>
             <input type="text" id="setDslPath" placeholder="e.g. /path/to/models/gpt1.dsl" style="background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;">
@@ -621,6 +632,7 @@
         box('Tasks completed', fmtCount(p.tasksCompleted || 0), `${(p.tasksPerSec || 0).toFixed(1)} tasks/s`) +
         box('Throughput', `${(p.flopsPerSec / 1e9 || 0).toFixed(2)} GFLOP/s`, `${fmtCount(Math.round(p.examplesPerSec || 0))} examples/s`) +
         box('Gradient norm', (p.gradNorm || 0).toFixed(3), 'global L2 (health)') +
+        box('Learning rate', (p.currentLr || 0).toExponential(2), 'current (scheduled)') +
         box('FLOPs / task', fmtFlops(p.flopsPerTask || 0), 'forward + backward') +
         box('Work done', fmtFlops(p.flopsProcessed || 0), `${fmtCount(p.examplesProcessed || 0)} examples`) +
         box('Work remaining', hasTarget ? fmtFlops(p.flopsRemaining) : '—', hasTarget ? `${fmtCount(p.examplesRemaining)} examples` : 'no target set') +
@@ -784,6 +796,8 @@
       // reflect persisted settings into the controls (without clobbering typing)
       if (document.activeElement.id !== 'setPrecision') document.getElementById('setPrecision').value = prec;
       if (document.activeElement.id !== 'setTargetTokens') document.getElementById('setTargetTokens').value = c.targetTokens || 0;
+      if (document.activeElement.id !== 'setLrSchedule') document.getElementById('setLrSchedule').value = c.lrSchedule || 'warmup_cosine';
+      if (document.activeElement.id !== 'setWarmupSteps') document.getElementById('setWarmupSteps').value = c.warmupSteps != null ? c.warmupSteps : 200;
       if (document.activeElement.id !== 'setDslPath') document.getElementById('setDslPath').value = c.dslFilePath || '';
 
       // wandb status
@@ -806,6 +820,8 @@
         body: JSON.stringify({
           precision: document.getElementById('setPrecision').value,
           targetTokens: parseInt(document.getElementById('setTargetTokens').value) || 0,
+          lrSchedule: document.getElementById('setLrSchedule').value,
+          warmupSteps: parseInt(document.getElementById('setWarmupSteps').value) || 0,
           dslFilePath: document.getElementById('setDslPath').value
         })
       }).then(r => r.json()).then(() => {
