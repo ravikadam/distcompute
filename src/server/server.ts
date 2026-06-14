@@ -36,6 +36,7 @@ const trainer = new Trainer(orchestrator);
       contextLen: c.contextLen,
       datasetFilePath: c.datasetFilePath || undefined,
       targetSteps: c.targetSteps,
+      targetTokens: c.targetTokens,
       precision: c.precision
     });
     trainer.dslFilePath = c.dslFilePath || '';
@@ -99,12 +100,14 @@ app.post('/api/training/configure', (req, res) => {
 // does NOT reset weights, unlike /configure.
 app.post('/api/settings', (req, res) => {
   try {
-    const { targetSteps, dslFilePath, precision } = req.body;
+    const { targetSteps, targetTokens, dslFilePath, precision } = req.body;
     if (targetSteps !== undefined) trainer.targetSteps = parseInt(targetSteps) || 0;
+    if (targetTokens !== undefined) trainer.targetTokens = parseInt(targetTokens) || 0;
     if (precision === 'fp16' || precision === 'fp32') trainer.precision = precision;
     if (dslFilePath !== undefined) trainer.dslFilePath = String(dslFilePath);
     persistentConfig.update({
       targetSteps: trainer.targetSteps,
+      targetTokens: trainer.targetTokens,
       precision: trainer.precision,
       ...(dslFilePath !== undefined ? { dslFilePath: String(dslFilePath) } : {})
     });
@@ -221,6 +224,7 @@ app.get('/api/training/status', (req, res) => {
       corpusLength: trainer.corpus.length,
       datasetFilePath: trainer.datasetFilePath,
       targetSteps: trainer.targetSteps,
+      targetTokens: trainer.targetTokens,
       precision: trainer.precision,
       dslFilePath: persistentConfig.data.dslFilePath
     }

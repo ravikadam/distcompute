@@ -216,8 +216,8 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="setTargetSteps">Target Steps (0 = unlimited)</label>
-            <input type="number" id="setTargetSteps" min="0" step="100" value="0">
+            <label for="setTargetTokens">Target Tokens / Examples (0 = unlimited)</label>
+            <input type="number" id="setTargetTokens" min="0" step="100000" value="0">
           </div>
           <div class="form-group full-width">
             <label for="setDslPath">Server-Side .dsl Model File Path (optional)</label>
@@ -615,7 +615,7 @@
       const box = (label, value, sub) =>
         `<div class="unit-box"><div class="unit-label">${label}</div>` +
         `<div class="unit-value">${value}</div>${sub ? `<div class="unit-sub">${sub}</div>` : ''}</div>`;
-      const hasTarget = p.targetSteps > 0;
+      const hasTarget = p.percent >= 0;
       document.getElementById('workGrid').innerHTML =
         box('Per-task compute', `${(p.avgTaskComputeMs || 0).toFixed(1)} ms`, `round-trip ${(p.avgTaskRoundTripMs || 0).toFixed(1)} ms`) +
         box('Tasks completed', fmtCount(p.tasksCompleted || 0), `${(p.tasksPerSec || 0).toFixed(1)} tasks/s`) +
@@ -624,7 +624,7 @@
         box('FLOPs / task', fmtFlops(p.flopsPerTask || 0), 'forward + backward') +
         box('Work done', fmtFlops(p.flopsProcessed || 0), `${fmtCount(p.examplesProcessed || 0)} examples`) +
         box('Work remaining', hasTarget ? fmtFlops(p.flopsRemaining) : '—', hasTarget ? `${fmtCount(p.examplesRemaining)} examples` : 'no target set') +
-        box('Work complete', hasTarget ? `${p.workPercent.toFixed(1)}%` : '—', hasTarget ? `step ${p.step}/${p.targetSteps}` : 'open-ended') +
+        box('Work complete', hasTarget ? `${p.workPercent.toFixed(1)}%` : '—', hasTarget ? `${fmtCount(p.examplesProcessed)} / ${fmtCount(p.targetExamples)} tokens` : 'open-ended') +
         box('Forecast time left', hasTarget ? fmtDuration(p.etaSeconds) : '—', hasTarget ? `at ${(p.avgStepMs || 0).toFixed(0)} ms/step` : '—');
     }
 
@@ -758,10 +758,10 @@
     function updateObservability(status) {
       lastConfig = status.config;
       const p = status.progress || {};
-      if (p.targetSteps > 0) {
+      if (p.percent >= 0) {
         document.getElementById('progressValue').innerText = `${p.percent.toFixed(1)}%`;
         document.getElementById('progressHint').innerText =
-          `${p.remaining} steps left · ETA ${fmtDuration(p.etaSeconds)} · ${Math.round(p.avgStepMs)}ms/step`;
+          `${fmtCount(p.examplesRemaining)} tokens left · ETA ${fmtDuration(p.etaSeconds)} · ${Math.round(p.examplesPerSec)} ex/s`;
       } else {
         document.getElementById('progressValue').innerText = 'No target';
         document.getElementById('progressHint').innerText =
@@ -783,7 +783,7 @@
 
       // reflect persisted settings into the controls (without clobbering typing)
       if (document.activeElement.id !== 'setPrecision') document.getElementById('setPrecision').value = prec;
-      if (document.activeElement.id !== 'setTargetSteps') document.getElementById('setTargetSteps').value = c.targetSteps || 0;
+      if (document.activeElement.id !== 'setTargetTokens') document.getElementById('setTargetTokens').value = c.targetTokens || 0;
       if (document.activeElement.id !== 'setDslPath') document.getElementById('setDslPath').value = c.dslFilePath || '';
 
       // wandb status
@@ -805,7 +805,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           precision: document.getElementById('setPrecision').value,
-          targetSteps: parseInt(document.getElementById('setTargetSteps').value) || 0,
+          targetTokens: parseInt(document.getElementById('setTargetTokens').value) || 0,
           dslFilePath: document.getElementById('setDslPath').value
         })
       }).then(r => r.json()).then(() => {

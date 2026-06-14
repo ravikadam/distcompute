@@ -13,5 +13,8 @@ _*_result.txt
 
 # Local training datasets
 data/
+# Python bytecode (from the exported-weights inference tool)
+__pycache__/
+*.pyc
 # PR scratch (not part of the repo)
 PULL_REQUEST*.md

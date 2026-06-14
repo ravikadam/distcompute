@@ -55,6 +55,11 @@ export class Trainer {
   // show % complete and an ETA, and the loop stops once the target is reached.
   targetSteps = 0;
 
+  // Preferred target: stop after this many training tokens/examples. 0 =
+  // unlimited. Token-based so % complete and ETA stay stable (and ETA drops)
+  // as workers are added, since examples/step scales with worker count.
+  targetTokens = 0;
+
   // Optional Weights & Biases logger. Null unless a key has been configured.
   wandb: WandbLogger | null = null;
 
@@ -106,7 +111,7 @@ export class Trainer {
   }
 
   // Dynamically update training parameters and reset model weights
-  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string; targetSteps?: number; precision?: 'fp16' | 'fp32' }) {
+  updateConfig(config: { lr?: number; batchSize?: number; hiddenDim?: number; contextLen?: number; corpus?: string; datasetFilePath?: string; targetSteps?: number; targetTokens?: number; precision?: 'fp16' | 'fp32' }) {
     this.stop();
 
     if (config.lr !== undefined) this.lr = config.lr;
@@ -114,6 +119,7 @@ export class Trainer {
     if (config.hiddenDim !== undefined) this.hiddenDim = config.hiddenDim;
     if (config.contextLen !== undefined) this.contextLen = config.contextLen;
     if (config.targetSteps !== undefined) this.targetSteps = config.targetSteps;
+    if (config.targetTokens !== undefined) this.targetTokens = config.targetTokens;
     if (config.precision !== undefined) this.precision = config.precision;
     
     // Reset server-side file tracking
@@ -279,20 +285,27 @@ export class Trainer {
       // Non-weight inputs per task: X/targets for char; tok/pos/mask/targets for GPT.
       const sliceInputs = model.makeStepInputs(numSlices);
 
+      // Encode the (identical) global weights ONCE per step and reuse the
+      // strings across every slice. Previously this ran inside the per-slice
+      // loop, so the single-threaded server base64-encoded the whole model
+      // numSlices times per step — O(numSlices × modelSize) of redundant CPU
+      // that grew with worker count and was a big reason adding workers slowed
+      // each step down.
+      const weightInputs: Record<string, { shape: number[]; data: string; dtype: string }> = {};
+      for (const [key, val] of Object.entries(this.weights)) {
+        weightInputs[key] = {
+          shape: shapes[key],
+          data: TensorVM.encodeBase64(val, this.precision),
+          dtype: this.precision
+        };
+      }
+
       const tasksPromises: Promise<any>[] = [];
       for (let s = 0; s < numSlices; s++) {
-        const taskInputs: Record<string, { shape: number[]; data: string; dtype: string }> = { ...sliceInputs[s] };
-
-        // Inject current global weights (real-valued → fp16-safe).
-        for (const [key, val] of Object.entries(this.weights)) {
-          taskInputs[key] = {
-            shape: shapes[key],
-            data: TensorVM.encodeBase64(val, this.precision),
-            dtype: this.precision
-          };
-        }
-
-        // Submit task (precision = dtype the worker uses for gradient outputs)
+        // Per-slice inputs (X/targets or tok/pos/mask/targets) + the shared,
+        // already-encoded weights. The weight entries are read-only and
+        // serialized per worker, so sharing the objects across tasks is safe.
+        const taskInputs = { ...sliceInputs[s], ...weightInputs };
         tasksPromises.push(this.orchestrator.submitTask(dsl, shapes, taskInputs, this.precision));
       }
 
@@ -382,7 +395,7 @@ export class Trainer {
             epoch: this.epoch,
             workers: this.orchestrator.workers.size,
             examples_per_step: currentBatchSize,
-            ...(p.targetSteps > 0
+            ...(p.percent >= 0
               ? { progress_pct: p.percent, eta_seconds: p.etaSeconds, eta_minutes: p.etaSeconds / 60 }
               : {})
           });
@@ -394,9 +407,15 @@ export class Trainer {
           this.broadcastStatsToDashboards();
         }
 
-        // Stop once the configured training target is reached.
-        if (this.targetSteps > 0 && this.step >= this.targetSteps) {
-          console.log(`Reached training target of ${this.targetSteps} steps. Stopping.`);
+        // Stop once the configured training target is reached. Token target
+        // takes precedence; step target is the legacy fallback.
+        const hitTokenTarget = this.targetTokens > 0 && this.cumulativeExamples >= this.targetTokens;
+        const hitStepTarget = this.targetTokens <= 0 && this.targetSteps > 0 && this.step >= this.targetSteps;
+        if (hitTokenTarget || hitStepTarget) {
+          const reason = hitTokenTarget
+            ? `${this.cumulativeExamples} tokens (target ${this.targetTokens})`
+            : `${this.step} steps (target ${this.targetSteps})`;
+          console.log(`Reached training target: ${reason}. Stopping.`);
           this.broadcastStatsToDashboards();
           if (this.wandb && this.wandb.active) await this.wandb.finish();
           this.isTraining = false;
@@ -574,27 +593,40 @@ export class Trainer {
       avgTaskRoundTripMs: timing.avgRoundTripMs,
     };
 
-    if (this.targetSteps <= 0) {
+    // Resolve the target into EXAMPLES (tokens). Token target is preferred; a
+    // legacy step target is converted using the current examples/step.
+    const examplesPerStepNow = this.lastExamplesPerStep || this.batchSize;
+    let targetExamples = 0;
+    if (this.targetTokens > 0) targetExamples = this.targetTokens;
+    else if (this.targetSteps > 0) targetExamples = this.targetSteps * examplesPerStepNow;
+
+    if (targetExamples <= 0) {
       // Open-ended run: no fixed amount of work remaining.
       return {
         ...base,
-        targetSteps: 0, remaining: -1, percent: -1, etaSeconds: -1,
+        targetSteps: this.targetSteps, targetTokens: this.targetTokens, targetExamples: 0,
+        remaining: -1, percent: -1, etaSeconds: -1,
         flopsTotal: -1, flopsRemaining: -1, examplesRemaining: -1, workPercent: -1
       };
     }
 
-    const remaining = Math.max(0, this.targetSteps - this.step);
-    const percent = Math.min(100, (this.step / this.targetSteps) * 100);
-    // Forecast remaining work from the most recent step's shape.
-    const examplesRemaining = remaining * (this.lastExamplesPerStep || this.batchSize);
-    const flopsRemaining = remaining * (this.lastNumSlices || 1) * this.flopsPerTask;
+    // Everything is measured in examples/tokens, so progress and ETA are stable
+    // as worker count changes — and ETA *drops* when throughput rises.
+    const examplesRemaining = Math.max(0, targetExamples - this.cumulativeExamples);
+    const percent = Math.min(100, (this.cumulativeExamples / targetExamples) * 100);
+    const etaSeconds = examplesPerSec > 0 ? examplesRemaining / examplesPerSec : -1;
+
+    const flopsPerExample = examplesPerStepNow > 0
+      ? (this.lastNumSlices * this.flopsPerTask) / examplesPerStepNow
+      : 0;
+    const flopsRemaining = examplesRemaining * flopsPerExample;
     const flopsTotal = this.cumulativeFlops + flopsRemaining;
     const workPercent = flopsTotal > 0 ? (this.cumulativeFlops / flopsTotal) * 100 : percent;
-    const etaSeconds = avgStepMs > 0 ? (remaining * avgStepMs) / 1000 : -1;
 
     return {
       ...base,
-      targetSteps: this.targetSteps, remaining, percent, etaSeconds,
+      targetSteps: this.targetSteps, targetTokens: this.targetTokens, targetExamples,
+      remaining: examplesRemaining, percent, etaSeconds,
       flopsTotal, flopsRemaining, examplesRemaining, workPercent
     };
   }
