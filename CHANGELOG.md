@@ -12,11 +12,11 @@ All notable changes to this project, newest first.
 
 ## Total Effort
 
-- **Versions shipped:** 7 (v1.0.0 baseline + v1.1.0 + v1.2.0 + v1.3.0 + v1.4.0 + v1.5.0 + v1.6.0)
+- **Versions shipped:** 8 (v1.0.0 baseline + v1.1.0 → v1.7.0)
 - **Sessions:** 2026-06-14
 - **First change:** 2026-06-14 09:52 UTC
-- **Latest change:** 2026-06-14 ~18:25 UTC
-- **Time spent (wall-clock window):** ~8h 33m (one session; includes gaps for on-cluster testing between iterations)
+- **Latest change:** 2026-06-14 ~19:05 UTC
+- **Time spent (wall-clock window):** ~9h 13m (one session; includes gaps for on-cluster testing between iterations)
 - **🐛 Bug Fixes:** 12
 - **⚡ Enhancements:** 1 (tolerant heartbeat timeout)
 - **✨ New Features:** 13
@@ -29,6 +29,28 @@ All notable changes to this project, newest first.
 ## [Unreleased]
 
 *(work in flight — see commits for incremental status)*
+
+---
+
+## v1.7.0 — WASM SIMD matmul (≈6.5× faster compute) [⚡ Enhancement]
+
+**Started:** 2026-06-14 ~18:30 UTC
+**Shipped:** 2026-06-14 ~19:05 UTC
+**Duration:** ~35 min
+
+- **Drove this:** The worker was compute-bound and the JS triple-loop matmul dominated every task. JS has no SIMD; WebAssembly does. This is the biggest single throughput lever for the slow interpreted VM.
+
+- **What we did:**
+  - ✅ **Hand-written WAT matmul kernel** (`src/public/matmul.wat`) vectorising the inner product with `f32x4` SIMD (+ a scalar tail for N not divisible by 4). Compiled to a 361-byte wasm module and **embedded as base64 in `vm.js`** — no asset to fetch.
+  - ✅ **Synchronous instantiation** (`new WebAssembly.Instance(new WebAssembly.Module(bytes))`) so it works the same in Node and browser Web Workers, with its own growable linear memory.
+  - ✅ **Fast path in the VM `matmul`** — routes large, contiguous **2D and batched-3D** matmuls (the bulk of transformer compute) through WASM, copying operands into wasm memory and the result back; **silently falls back to JS** for strided/tiny matmuls or if wasm/SIMD is unavailable.
+  - ✅ **Verified:** kernel matches the JS reference to ~1e-6 (only float accumulation order differs); the autodiff gradient checks (which flow through `matmul`) still pass; new regression tests for 2D + batched matmul; a real Tiny-GPT training step over the WASM path still drives the loss down. Measured **~6.5× speedup** on a [256,512]@[512,512] matmul.
+
+- **How it helps:** The dominant per-task cost (matmul) is several times faster on every worker — directly cutting training wall-time for the compute-bound VM.
+
+- **Known limits:** No cache blocking yet (a blocked kernel could go faster still); only contiguous offset-0 matmuls use WASM; the wasm bytes are regenerated from `matmul.wat` with `wabt` (a build-time-only tool, not a runtime dependency).
+
+- **Roadmap status:** WASM SIMD matmul → Done. Open: binary-frame transport, multi-threaded server serialization, WebGPU.
 
 ---
 
