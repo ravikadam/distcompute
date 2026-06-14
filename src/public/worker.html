@@ -395,6 +395,14 @@
     let isConnected = false;
     let isComputing = false;
 
+    // Auto-reconnect state. manualStop is set when the user clicks Disconnect or
+    // the server kicks us — in those cases we do NOT reconnect. Any other drop
+    // (heartbeat timeout, network blip, backgrounded-tab throttle) triggers an
+    // exponential-backoff reconnect so the worker rejoins on its own.
+    let manualStop = false;
+    let reconnectTimer = null;
+    let reconnectDelay = 2000;
+
     let completedTasks = 0;
     let failedTasks = 0;
     let currentThroughput = 0;
@@ -522,6 +530,8 @@
 
       socket.onopen = function () {
         isConnected = true;
+        reconnectDelay = 2000; // reset backoff after a successful connection
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
         updateStatus();
         connectBtn.innerText = 'Disconnect';
         connectBtn.className = 'disconnect';
@@ -588,26 +598,28 @@
       };
 
       socket.onclose = function () {
-        log('Connection closed by remote orchestrator.', 'error');
-        disconnect();
+        log('Connection closed.' + (manualStop ? '' : ' Will auto-reconnect.'), 'error');
+        handleDrop();
       };
 
       socket.onerror = function (err) {
-        log(`Socket error: Connection failed.`, 'error');
-        disconnect();
+        log(`Socket error: connection failed.`, 'error');
+        handleDrop();
       };
     }
 
-    function disconnect() {
+    // Tear down the socket, compute thread, and heartbeats. Makes no decision
+    // about reconnecting — callers decide.
+    function cleanupConnection() {
       isConnected = false;
       isComputing = false;
       updateStatus();
-      
+
       connectBtn.innerText = 'Connect Node';
       connectBtn.className = '';
 
       if (socket) {
-        socket.close();
+        try { socket.close(); } catch (e) { /* already closing */ }
         socket = null;
       }
 
@@ -617,6 +629,29 @@
       }
 
       stopHeartbeats();
+    }
+
+    // User- or server-initiated stop: tear down and do NOT reconnect.
+    function disconnect() {
+      manualStop = true;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      cleanupConnection();
+    }
+
+    // Unexpected drop: tear down and schedule an auto-reconnect with backoff.
+    function handleDrop() {
+      cleanupConnection();
+      scheduleReconnect();
+    }
+
+    function scheduleReconnect() {
+      if (manualStop || reconnectTimer) return;
+      log(`Reconnecting in ${Math.round(reconnectDelay / 1000)}s…`, 'info');
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000); // exponential backoff, cap 30s
     }
 
     // Heartbeats
@@ -667,6 +702,7 @@
       if (isConnected) {
         disconnect();
       } else {
+        manualStop = false; // user is opting back in
         connect();
       }
     });
