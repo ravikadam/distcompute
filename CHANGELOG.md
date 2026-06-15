@@ -32,6 +32,21 @@ All notable changes to this project, newest first.
 
 ---
 
+## v1.8.0 — Fix Model Training & Convergence for Tiny-GPT [🐛 Bug Fix]
+
+**Started:** 2026-06-15 ~09:58 UTC
+**Shipped:** 2026-06-15 ~10:05 UTC
+**Duration:** ~7 min
+
+- **Drove this:** Tiny-GPT/Transformer training was failing to converge (loss flat or exploding) because of incorrect VM embedding stride/bounds handling and using MLP-default hyperparameter values (learning rate 0.015 instead of 0.0003, and 0 warmup steps).
+
+- **What we did:**
+  - ✅ **Strided & bounds-safe embedding operations** in the VM (`vm.js`): Updated `embedding` and `embeddingGrad` to support strided/transposed views instead of assuming contiguous memory, and added row index bounds checking.
+  - ✅ **Trainer default auto-adjustments** (`trainer.ts`): Configured `Trainer.start()` to automatically scale down MLP-default learning rates to `0.0003` and set warmup steps to `200` when training a GPT model.
+  - ✅ **Default configuration update** (`config.json`): Set default training parameters to a learning rate of `0.0003` and warmup steps to `200` to ensure out-of-the-box convergence for Tiny-GPT.
+
+---
+
 ## v1.7.0 — WASM SIMD matmul (≈6.5× faster compute) [⚡ Enhancement]
 
 **Started:** 2026-06-14 ~18:30 UTC

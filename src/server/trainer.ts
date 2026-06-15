@@ -306,6 +306,16 @@ export class Trainer {
 
     // Pick the model: a compiled .dsl file (e.g. Tiny-GPT) or the built-in char-MLP.
     this.mode = this.dslFilePath && this.dslFilePath.trim().length > 0 ? 'gpt' : 'char';
+    if (this.mode === 'gpt') {
+      if (this.lr === 0.015) {
+        this.lr = 0.0003;
+        console.log(`[Trainer] Detected GPT model mode. Auto-adjusting learning rate from MLP default (0.015) to feasible GPT maxLR (0.0003).`);
+      }
+      if (this.warmupSteps === 0 || this.warmupSteps === 200) {
+        this.warmupSteps = 200;
+        console.log(`[Trainer] Detected GPT model mode. Auto-adjusting warmup steps to 200.`);
+      }
+    }
     let model: ModelRuntime;
     try {
       model = this.mode === 'gpt' ? this.buildGptModel() : this.buildCharModel();
