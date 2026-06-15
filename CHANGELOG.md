@@ -46,6 +46,7 @@ All notable changes to this project, newest first.
   - ✅ **Default configuration update** (`config.json`): Set default training parameters to a learning rate of `0.0003` and warmup steps to `200` to ensure out-of-the-box convergence for Tiny-GPT.
   - ✅ **Dashboard input selector fix** (`dashboard.html`): Replaced inline `onclick` handler on the dataset text file selector button with a standard DOM event listener to avoid script security execution issues.
   - ✅ **Persistent custom corpus** (`trainer.ts` & `.gitignore`): Restored and saved custom corpus uploads to `corpus_last.txt` to prevent data loss and model drift after server restarts.
+  - ✅ **Form label specificity fix** (`dashboard.css`): Changed `.form-group label` selector to `.form-group > label` to prevent button labels from inheriting tiny/grey header label styles.
 
 ---
 
