@@ -135,8 +135,8 @@
           <div class="form-group full-width">
             <label>Dataset Corpus (Upload text file or paste text)</label>
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
-              <input type="file" id="datasetFile" accept=".txt" style="opacity: 0; position: absolute; width: 0; height: 0; z-index: -1;">
-              <button type="button" id="chooseFileBtn" class="btn-outline">Choose .txt File</button>
+              <input type="file" id="datasetFile" accept=".txt" style="display: none;">
+              <label for="datasetFile" id="chooseFileBtn" class="btn-outline">Choose .txt File</label>
               <span id="fileNameLabel" style="font-size: 13px; color: var(--text-muted);">No file chosen</span>
             </div>
             <textarea id="datasetText" placeholder="Paste custom training text corpus here... (or choose a .txt file)"></textarea>
@@ -395,11 +395,7 @@
     const paramDatasetFilePath = document.getElementById('paramDatasetFilePath');
     const chooseFileBtn = document.getElementById('chooseFileBtn');
 
-    if (chooseFileBtn && datasetFile) {
-      chooseFileBtn.addEventListener('click', () => {
-        datasetFile.click();
-      });
-    }
+
 
     let ws = null;
     let customCorpus = null;
