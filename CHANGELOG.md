@@ -44,6 +44,7 @@ All notable changes to this project, newest first.
   - ✅ **Strided & bounds-safe embedding operations** in the VM (`vm.js`): Updated `embedding` and `embeddingGrad` to support strided/transposed views instead of assuming contiguous memory, and added row index bounds checking.
   - ✅ **Trainer default auto-adjustments** (`trainer.ts`): Configured `Trainer.start()` to automatically scale down MLP-default learning rates to `0.0003` and set warmup steps to `200` when training a GPT model.
   - ✅ **Default configuration update** (`config.json`): Set default training parameters to a learning rate of `0.0003` and warmup steps to `200` to ensure out-of-the-box convergence for Tiny-GPT.
+  - ✅ **Dashboard input selector fix** (`dashboard.html`): Replaced inline `onclick` handler on the dataset text file selector button with a standard DOM event listener to avoid script security execution issues.
 
 ---
 
