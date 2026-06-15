@@ -983,10 +983,13 @@ function embedding(out, table, ids) {
   const d = table.shape[table.shape.length - 1];
   const n = ids.size;
   for (let i = 0; i < n; i++) {
-    const row = Math.round(ids.data[ids.offset + i]);
-    const tBase = table.offset + row * d;
-    const oBase = i * d;
-    for (let j = 0; j < d; j++) out.data[oBase + j] = table.data[tBase + j];
+    const row = Math.round(ids.data[ids.offset + i * ids.strides[0]]);
+    if (row < 0 || row >= table.shape[0]) continue; // bounds safety
+    const tBase = table.offset + row * table.strides[0];
+    const oBase = out.offset + i * out.strides[0];
+    for (let j = 0; j < d; j++) {
+      out.data[oBase + j * out.strides[1]] = table.data[tBase + j * table.strides[1]];
+    }
   }
 }
 // gTable: [V, d] (zeroed then scatter-added), dy: [...ids, d], ids: [...]
@@ -995,10 +998,13 @@ function embeddingGrad(gTable, dy, ids) {
   const d = gTable.shape[gTable.shape.length - 1];
   const n = ids.size;
   for (let i = 0; i < n; i++) {
-    const row = Math.round(ids.data[ids.offset + i]);
-    const gBase = row * d;
-    const yBase = dy.offset + i * d;
-    for (let j = 0; j < d; j++) gTable.data[gBase + j] += dy.data[yBase + j];
+    const row = Math.round(ids.data[ids.offset + i * ids.strides[0]]);
+    if (row < 0 || row >= gTable.shape[0]) continue; // bounds safety
+    const gBase = gTable.offset + row * gTable.strides[0];
+    const yBase = dy.offset + i * dy.strides[0];
+    for (let j = 0; j < d; j++) {
+      gTable.data[gBase + j * gTable.strides[1]] += dy.data[yBase + j * dy.strides[1]];
+    }
   }
 }
 
