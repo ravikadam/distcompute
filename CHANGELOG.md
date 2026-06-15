@@ -45,6 +45,7 @@ All notable changes to this project, newest first.
   - ✅ **Trainer default auto-adjustments** (`trainer.ts`): Configured `Trainer.start()` to automatically scale down MLP-default learning rates to `0.0003` and set warmup steps to `200` when training a GPT model.
   - ✅ **Default configuration update** (`config.json`): Set default training parameters to a learning rate of `0.0003` and warmup steps to `200` to ensure out-of-the-box convergence for Tiny-GPT.
   - ✅ **Dashboard input selector fix** (`dashboard.html`): Replaced inline `onclick` handler on the dataset text file selector button with a standard DOM event listener to avoid script security execution issues.
+  - ✅ **Persistent custom corpus** (`trainer.ts` & `.gitignore`): Restored and saved custom corpus uploads to `corpus_last.txt` to prevent data loss and model drift after server restarts.
 
 ---
 

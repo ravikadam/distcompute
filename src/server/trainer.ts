@@ -128,6 +128,18 @@ export class Trainer {
   constructor(orchestrator: Orchestrator, checkpoints?: CheckpointStore) {
     this.orchestrator = orchestrator;
     this.checkpoints = checkpoints ?? new CheckpointStore();
+
+    // Restore last uploaded custom corpus if it exists on disk
+    const corpusPath = path.join(process.cwd(), 'corpus_last.txt');
+    if (fs.existsSync(corpusPath)) {
+      try {
+        this.corpus = fs.readFileSync(corpusPath, 'utf8');
+        console.log(`[Trainer] Restored custom corpus from corpus_last.txt (${this.corpus.length.toLocaleString()} characters)`);
+      } catch (e) {
+        console.error('[Trainer] failed to load corpus_last.txt:', e);
+      }
+    }
+
     this.initWeights();
   }
 
@@ -206,6 +218,13 @@ export class Trainer {
       }
     } else if (config.corpus !== undefined && config.corpus.trim().length > 10) {
       this.corpus = config.corpus;
+      try {
+        const corpusPath = path.join(process.cwd(), 'corpus_last.txt');
+        fs.writeFileSync(corpusPath, this.corpus, 'utf8');
+        console.log(`[Trainer] Successfully saved custom corpus to ${corpusPath}`);
+      } catch (e) {
+        console.error('[Trainer] failed to save corpus_last.txt:', e);
+      }
     }
 
     this.initWeights();

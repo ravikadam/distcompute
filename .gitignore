@@ -15,6 +15,7 @@ _*_result.txt
 
 # Local training datasets
 data/
+corpus_last.txt
 # Python bytecode (from the exported-weights inference tool)
 __pycache__/
 *.pyc
